@@ -9,8 +9,8 @@ class Display:
 
     def show(self, buf, first_line):
         my, mx = self.stdscr.getmaxyx()
-        if (first_line > buf.len() - my):
-            first_line = buf.len() - my
+        if (first_line > buf.length() - my):
+            first_line = buf.length() - my
         if (first_line < 0):
             first_line = 0
         for y in range(0, my):
@@ -28,6 +28,26 @@ class Display:
         return self.stdscr.getch()
 
 
+class Keys:
+    """ Map cursor keys or key arrays to functions """
+    def __init__(self):
+        self.methods = [None] * curses.KEY_MAX
+
+    def bind(self, key, method):
+        if type(key) in (tuple, list):
+            for i in key:
+                self.bind(i, method)
+        if type(key) == str:
+            key = ord(key)
+        self.methods[key] = method
+
+    def process(self, key):
+        if not self.methods[key]:
+            return 0
+        method = self.methods[key]
+        method()
+
+
 class Buffer:
     def __init__(self):
         self.lines = []
@@ -40,24 +60,41 @@ class Buffer:
     def __getitem__(self, n):
         return self.lines[n]
 
-    def len(self):
+    def length(self):
         return len(self.lines)
+
+
+class Vy:
+    def __init__(self, display):
+        self.display = display
+        self.y = 0
+
+    def set_viewable(self, buffer):
+        self.viewable = buffer
+
+    def cursor_up(self):
+        self.y -= 1
+
+    def cursor_down(self):
+        self.y += 1
 
 
 def main(stdscr, argv):
     d = Display(stdscr)
     b = Buffer()
+    k = Keys()
+    vy = Vy(d)
     b.open(argv[1])
-    y = 0
+    vy.set_viewable(b)
+
+    k.bind('k', vy.cursor_up)
+    k.bind('j', vy.cursor_down)
+    d.show(b, 0)
     while True:
-        y = d.show(b, y)
         c = d.getkey()
-        if c == ord('k'):
-            y -= 1
-        if c == ord('j'):
-            y += 1
-        if c == ord('q'):
-            break
+        k.process(c)
+        vy.y = d.show(b, vy.y)
+
 
 if len(sys.argv) < 2:
     print ('Usage: vy <file>')
