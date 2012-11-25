@@ -1,6 +1,4 @@
-import atexit
 import curses
-import time
 import sys
 
 
@@ -11,8 +9,8 @@ class Display:
 
     def show(self, buf, first_line):
         my, mx = self.stdscr.getmaxyx()
-        if (first_line > buf.length() - my):
-            first_line = buf.length() - my
+        if (first_line > buf.len() - my):
+            first_line = buf.len() - my
         if (first_line < 0):
             first_line = 0
         for y in range(0, my):
@@ -21,7 +19,7 @@ class Display:
             # The last character in the bottom right ?
             if y == my - 1:
                 width -= 1  # non addressable
-            self.stdscr.addnstr(y, 0, buf.line(n), width)
+            self.stdscr.addnstr(y, 0, buf[n], width)
             self.stdscr.clrtoeol()
         self.stdscr.refresh()
         return first_line
@@ -39,10 +37,10 @@ class Buffer:
         for l in open(path).readlines():
             self.lines.append(l[:-1])
 
-    def line(self, n):
+    def __getitem__(self, n):
         return self.lines[n]
 
-    def length(self):
+    def len(self):
         return len(self.lines)
 
 
