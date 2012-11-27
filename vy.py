@@ -37,6 +37,8 @@ class Keys:
         if type(key) in (tuple, list):
             for i in key:
                 self.bind(i, method)
+            return
+
         if type(key) == str:
             key = ord(key)
         self.methods[key] = method
@@ -87,8 +89,8 @@ def main(stdscr, argv):
     b.open(argv[1])
     vy.set_viewable(b)
 
-    k.bind('k', vy.cursor_up)
-    k.bind('j', vy.cursor_down)
+    k.bind(['k', curses.KEY_UP], vy.cursor_up)
+    k.bind(['j', curses.KEY_DOWN], vy.cursor_down)
     d.show(b, 0)
     while True:
         c = d.getkey()
