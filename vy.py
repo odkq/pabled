@@ -3,26 +3,23 @@ import sys
 
 
 class Display:
+    """ Abstract ncurses interface """
     def __init__(self, stdscr):
-        self.cursor = [0, 0]
         self.stdscr = stdscr
+        self.my, self.mx = self.stdscr.getmaxyx()
 
-    def show(self, buf, first_line):
-        my, mx = self.stdscr.getmaxyx()
-        if (first_line > buf.length() - my):
-            first_line = buf.length() - my
-        if (first_line < 0):
-            first_line = 0
-        for y in range(0, my):
-            n = first_line + y
-            width = mx
-            # The last character in the bottom right ?
-            if y == my - 1:
-                width -= 1  # non addressable
-            self.stdscr.addnstr(y, 0, buf[n], width)
+    def show(self, buffer):
+        """ Refresh display after a motion command """
+        for y in range(0, self.my - 1):
+            n = y + buffer.viewport[0]
+            width = self.mx
+            self.stdscr.addnstr(y, 0, buffer[n], width)
             self.stdscr.clrtoeol()
         self.stdscr.refresh()
-        return first_line
+        return
+
+    def status(self, line):
+        self.stdscr.addstr(self.my, 0, line, self.mx - 1)
 
     def getkey(self):
         return self.stdscr.getch()
@@ -51,8 +48,11 @@ class Keys:
 
 
 class Buffer:
+    """ Loaded file with cursor and viewport """
     def __init__(self):
         self.lines = []
+        self.cursor = [0, 0]
+        self.viewport = [0, 0]
 
     def open(self, path):
         self.lines = []
@@ -69,16 +69,26 @@ class Buffer:
 class Vy:
     def __init__(self, display):
         self.display = display
+        self.buffers = []
         self.y = 0
 
-    def set_viewable(self, buffer):
-        self.viewable = buffer
+    def add_buffer(self, buffer):
+        self.buffers.append(buffer)
+
+    def set_current(self, buffer):
+        self.current = buffer
 
     def cursor_up(self):
-        self.y -= 1
+        self.current.viewport[0] -= 1
 
     def cursor_down(self):
-        self.y += 1
+        self.current.viewport[0] += 1
+
+    def cursor_left(self):
+        pass
+
+    def cursor_right(self):
+        pass
 
 
 def main(stdscr, argv):
@@ -87,15 +97,20 @@ def main(stdscr, argv):
     k = Keys()
     vy = Vy(d)
     b.open(argv[1])
-    vy.set_viewable(b)
+    vy.add_buffer(b)
+    vy.set_current(b)
 
     k.bind(['k', curses.KEY_UP], vy.cursor_up)
     k.bind(['j', curses.KEY_DOWN], vy.cursor_down)
-    d.show(b, 0)
+    k.bind(['h', curses.KEY_LEFT], vy.cursor_left)
+    k.bind(['l', curses.KEY_RIGHT], vy.cursor_right)
+
+    d.show(b)
+
     while True:
         c = d.getkey()
         k.process(c)
-        vy.y = d.show(b, vy.y)
+        vy.y = d.show(b)
 
 
 if len(sys.argv) < 2:
