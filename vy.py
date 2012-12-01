@@ -11,10 +11,11 @@ class Display:
     def show(self, buffer):
         """ Refresh display after a motion command """
         for y in range(0, self.my - 1):
-            n = y + buffer.viewport[0]
+            n = y + buffer.viewport['y0']
             width = self.mx
             self.stdscr.addnstr(y, 0, buffer[n], width)
             self.stdscr.clrtoeol()
+        self.stdscr.move(buffer.cursor['y'], buffer.cursor['x'])
         self.stdscr.refresh()
         return
 
@@ -35,7 +36,6 @@ class Keys:
             for i in key:
                 self.bind(i, method)
             return
-
         if type(key) == str:
             key = ord(key)
         self.methods[key] = method
@@ -48,11 +48,11 @@ class Keys:
 
 
 class Buffer:
-    """ Loaded file with cursor and viewport """
+    """ Loaded file with associated cursor and viewport positions """
     def __init__(self):
         self.lines = []
-        self.cursor = [0, 0]
-        self.viewport = [0, 0]
+        self.cursor = {'x': 0, 'y': 0, 'max': 0}
+        self.viewport = {'x0': 0, 'y0': 0, 'x1': 0, 'y1': 0}
 
     def open(self, path):
         self.lines = []
@@ -64,6 +64,9 @@ class Buffer:
 
     def length(self):
         return len(self.lines)
+
+    def current_line(self):
+        return self.lines[self.cursor['y']]
 
 
 class Vy:
@@ -78,16 +81,50 @@ class Vy:
     def set_current(self, buffer):
         self.current = buffer
 
+    def cursor_adjustement(self):
+        c = self.current
+        # If the next line does not have enough characters
+        # for the cursor to be positioned on the same x,
+        # adjust it and store the last position in cursor[2]
+        if c.cursor['max'] > c.cursor['x']:
+            if len(c.current_line()) >= c.cursor['max']:
+                c.cursor['x'] = c.cursor['max']
+            else:
+                c.cursor['x'] = len(c.current_line())
+        else:
+            if len(c.current_line()) < c.cursor['x']:
+                c.cursor['max'] = c.cursor['x']
+                c.cursor['x'] = len(c.current_line())
+
     def cursor_up(self):
-        self.current.viewport[0] -= 1
+        c = self.current
+        if c.cursor['y'] == 0:
+            return
+        self.current.cursor['y'] -= 1
+        self.cursor_adjustement()
 
     def cursor_down(self):
-        self.current.viewport[0] += 1
+        c = self.current
+        if c.length() <= self.current.cursor['y']:
+            return
+        self.current.cursor['y'] += 1
+        self.cursor_adjustement()
 
     def cursor_left(self):
-        pass
+        c = self.current
+        if c.cursor['x'] == 0:
+            return
+        c.cursor['x'] -= 1
+        c.cursor['max'] = c.cursor['x']
 
     def cursor_right(self):
+        c = self.current
+        if len(c.current_line()) == (c.cursor['x'] - c.viewport['x0']):
+            return
+        c.cursor['x'] = c.cursor['x'] + 1
+        c.cursor['max'] = c.cursor['x']
+
+    def search(self):
         pass
 
 
@@ -100,11 +137,12 @@ def main(stdscr, argv):
     vy.add_buffer(b)
     vy.set_current(b)
 
+    # Command mode commands
     k.bind(['k', curses.KEY_UP], vy.cursor_up)
     k.bind(['j', curses.KEY_DOWN], vy.cursor_down)
     k.bind(['h', curses.KEY_LEFT], vy.cursor_left)
     k.bind(['l', curses.KEY_RIGHT], vy.cursor_right)
-
+    k.bind('/', vy.search)
     d.show(b)
 
     while True:
