@@ -30,12 +30,25 @@ class Display:
         """ Refresh display after a motion command """
         for y in range(0, self.my - 1):
             n = y + buffer.viewport['y0']
-            width = self.mx
-            self.stdscr.addnstr(y, 0, buffer[n], width)
-            self.stdscr.clrtoeol()
-        rx = buffer.cursor['y'] - buffer.viewport['y0']
-        ry = buffer.cursor['x'] - buffer.viewport['x0']
-        self.stdscr.move(rx, ry)
+            text = buffer[n]['text'][buffer.viewport['x0']:]
+            attributes = None
+            if buffer[n]['attributes'] != None:
+                attributes = buffer[n]['attributes'][buffer.viewport['x0']:]
+            text = buffer[n]['text'][buffer.viewport['x0']:]
+            for i in range(self.mx):
+                if i < len(text):
+                    if attributes == None:
+                        a = curses.A_NORMAL
+                    else:
+                        a = attributes[i]
+                    ch = text[i]
+                else:
+                    ch = ' '
+                    a = curses.A_NORMAL
+                self.stdscr.addch(y, i, ch, a)
+        rx = buffer.cursor['x'] - buffer.viewport['x0']
+        ry = buffer.cursor['y'] - buffer.viewport['y0']
+        self.stdscr.move(ry, rx)
         self.stdscr.refresh()
 
     def status(self, line):
@@ -76,7 +89,7 @@ class Buffer:
     def open(self, path):
         self.lines = []
         for l in open(path).readlines():
-            self.lines.append(l[:-1])
+            self.lines.append({'text': l[:-1], 'attributes': None})
 
     def __getitem__(self, n):
         return self.lines[n]
@@ -85,7 +98,7 @@ class Buffer:
         return len(self.lines)
 
     def current_line(self):
-        return self.lines[self.cursor['y']]
+        return self.lines[self.cursor['y']]['text']
 
     def __cursor_adjustement(c):
         """ If the next line does not have enough characters
@@ -145,11 +158,13 @@ class Buffer:
         if not c.cursor['x'] == 0:
             c.cursor['x'] -= 1
             c.__cursor_max_reset()
+            c.__cursor_and_viewport_adjustement()
 
     def cursor_right(c):
         if (len(c.current_line()) - 1) > (c.cursor['x'] - c.viewport['x0']):
             c.cursor['x'] = c.cursor['x'] + 1
             c.__cursor_max_reset()
+            c.__cursor_and_viewport_adjustement()
 
 
 class Vy:
@@ -170,7 +185,7 @@ class Vy:
 
 def main(stdscr, argv):
     d = Display(stdscr)
-    b = Buffer(d.mx, d.my - 2)
+    b = Buffer(d.mx - 1, d.my - 2)
     k = Keys()
     vy = Vy(d)
     b.open(argv[1])
