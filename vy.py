@@ -147,7 +147,7 @@ class Buffer:
             c.__cursor_max_reset()
 
     def cursor_right(c):
-        if not (len(c.current_line()) - 1) == (c.cursor['x'] - c.viewport['x0']):
+        if (len(c.current_line()) - 1) > (c.cursor['x'] - c.viewport['x0']):
             c.cursor['x'] = c.cursor['x'] + 1
             c.__cursor_max_reset()
 
