@@ -1,3 +1,21 @@
+#!/usr/bin/env python
+"""
+ vy - a small vi clone with some extras
+ Copyright (C) 2012 Pablo Martin <pablo@odkq.com>
+
+  This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 import curses
 import sys
 
@@ -15,19 +33,20 @@ class Display:
             width = self.mx
             self.stdscr.addnstr(y, 0, buffer[n], width)
             self.stdscr.clrtoeol()
-        self.stdscr.move(buffer.cursor['y'], buffer.cursor['x'])
+        rx = buffer.cursor['y'] - buffer.viewport['y0']
+        ry = buffer.cursor['x'] - buffer.viewport['x0']
+        self.stdscr.move(rx, ry)
         self.stdscr.refresh()
-        return
 
     def status(self, line):
-        self.stdscr.addstr(self.my, 0, line, self.mx - 1)
+        self.stdscr.addstr(self.my - 1, 0, line, self.mx - 1)
 
     def getkey(self):
         return self.stdscr.getch()
 
 
 class Keys:
-    """ Map cursor keys or key arrays to functions """
+    """ Map c keys or key arrays to functions """
     def __init__(self):
         self.methods = [None] * curses.KEY_MAX
 
@@ -48,11 +67,11 @@ class Keys:
 
 
 class Buffer:
-    """ Loaded file with associated cursor and viewport positions """
-    def __init__(self):
+    """ Loaded file with associated c and viewport positions """
+    def __init__(self, x1, y1):
         self.lines = []
         self.cursor = {'x': 0, 'y': 0, 'max': 0}
-        self.viewport = {'x0': 0, 'y0': 0, 'x1': 0, 'y1': 0}
+        self.viewport = {'x0': 0, 'y0': 0, 'x1': x1, 'y1': y1}
 
     def open(self, path):
         self.lines = []
@@ -68,6 +87,70 @@ class Buffer:
     def current_line(self):
         return self.lines[self.cursor['y']]
 
+    def __cursor_adjustement(c):
+        """ If the next line does not have enough characters
+            or the cursor to be positioned on the same x,
+            adjust it and store the last position in cursor['max']
+            restore position to cursor['max'] if after moving to
+            the new line it fits
+        """
+        if len(c.current_line()) == 0:
+            c.cursor['x'] = 0
+        elif c.cursor['max'] > c.cursor['x']:
+            if len(c.current_line()) >= c.cursor['max']:
+                c.cursor['x'] = c.cursor['max']
+            else:
+                c.cursor['x'] = len(c.current_line()) - 1
+        elif (len(c.current_line()) - 1) < c.cursor['x']:
+            c.cursor['max'] = c.cursor['x']
+            c.cursor['x'] = len(c.current_line()) - 1
+
+    def __viewport_adjustement(c):
+        if c.cursor['x'] > c.viewport['x1']:
+            delta = c.cursor['x'] - c.viewport['x1']
+            c.viewport['x0'] += delta
+            c.viewport['x1'] += delta
+        elif c.cursor['x'] < c.viewport['x0']:
+            delta = c.viewport['x0'] - c.cursor['x']
+            c.viewport['x1'] -= delta
+            c.viewport['x0'] -= delta
+        if c.cursor['y'] > c.viewport['y1']:
+            delta = c.cursor['y'] - c.viewport['y1']
+            c.viewport['y0'] += delta
+            c.viewport['y1'] += delta
+        elif c.cursor['y'] < c.viewport['y0']:
+            delta = c.viewport['y0'] - c.cursor['y']
+            c.viewport['y1'] -= delta
+            c.viewport['y0'] -= delta
+
+    def __cursor_and_viewport_adjustement(c):
+        c.__cursor_adjustement()
+        c.__viewport_adjustement()
+
+    def cursor_up(c):
+        if not c.cursor['y'] == 0:
+            c.cursor['y'] -= 1
+            c.__cursor_and_viewport_adjustement()
+
+    def cursor_down(c):
+        if (c.length() - 1) > c.cursor['y']:
+            c.cursor['y'] += 1
+            c.__cursor_and_viewport_adjustement()
+
+    def __cursor_max_reset(c):
+        """ Any deliverated movement left or right should reset the max """
+        c.cursor['max'] = c.cursor['x']
+
+    def cursor_left(c):
+        if not c.cursor['x'] == 0:
+            c.cursor['x'] -= 1
+            c.__cursor_max_reset()
+
+    def cursor_right(c):
+        if not (len(c.current_line()) - 1) == (c.cursor['x'] - c.viewport['x0']):
+            c.cursor['x'] = c.cursor['x'] + 1
+            c.__cursor_max_reset()
+
 
 class Vy:
     def __init__(self, display):
@@ -81,56 +164,13 @@ class Vy:
     def set_current(self, buffer):
         self.current = buffer
 
-    def cursor_adjustement(self):
-        c = self.current
-        # If the next line does not have enough characters
-        # for the cursor to be positioned on the same x,
-        # adjust it and store the last position in cursor[2]
-        if c.cursor['max'] > c.cursor['x']:
-            if len(c.current_line()) >= c.cursor['max']:
-                c.cursor['x'] = c.cursor['max']
-            else:
-                c.cursor['x'] = len(c.current_line())
-        else:
-            if len(c.current_line()) < c.cursor['x']:
-                c.cursor['max'] = c.cursor['x']
-                c.cursor['x'] = len(c.current_line())
-
-    def cursor_up(self):
-        c = self.current
-        if c.cursor['y'] == 0:
-            return
-        self.current.cursor['y'] -= 1
-        self.cursor_adjustement()
-
-    def cursor_down(self):
-        c = self.current
-        if c.length() <= self.current.cursor['y']:
-            return
-        self.current.cursor['y'] += 1
-        self.cursor_adjustement()
-
-    def cursor_left(self):
-        c = self.current
-        if c.cursor['x'] == 0:
-            return
-        c.cursor['x'] -= 1
-        c.cursor['max'] = c.cursor['x']
-
-    def cursor_right(self):
-        c = self.current
-        if len(c.current_line()) == (c.cursor['x'] - c.viewport['x0']):
-            return
-        c.cursor['x'] = c.cursor['x'] + 1
-        c.cursor['max'] = c.cursor['x']
-
     def search(self):
         pass
 
 
 def main(stdscr, argv):
     d = Display(stdscr)
-    b = Buffer()
+    b = Buffer(d.mx, d.my - 2)
     k = Keys()
     vy = Vy(d)
     b.open(argv[1])
@@ -138,17 +178,18 @@ def main(stdscr, argv):
     vy.set_current(b)
 
     # Command mode commands
-    k.bind(['k', curses.KEY_UP], vy.cursor_up)
-    k.bind(['j', curses.KEY_DOWN], vy.cursor_down)
-    k.bind(['h', curses.KEY_LEFT], vy.cursor_left)
-    k.bind(['l', curses.KEY_RIGHT], vy.cursor_right)
+    k.bind(['k', curses.KEY_UP], b.cursor_up)
+    k.bind(['j', curses.KEY_DOWN], b.cursor_down)
+    k.bind(['h', curses.KEY_LEFT], b.cursor_left)
+    k.bind(['l', curses.KEY_RIGHT], b.cursor_right)
     k.bind('/', vy.search)
     d.show(b)
 
     while True:
         c = d.getkey()
         k.process(c)
-        vy.y = d.show(b)
+        d.status(str(b.cursor) + str(b.viewport))
+        d.show(b)
 
 
 if len(sys.argv) < 2:
