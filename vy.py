@@ -3,7 +3,7 @@
  vy - a small vi clone with some extras
  Copyright (C) 2012 Pablo Martin <pablo@odkq.com>
 
-  This program is free software: you can redistribute it and/or modify
+ This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
@@ -16,6 +16,8 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import pygments
+import pygments.lexers
 import curses
 import sys
 
@@ -30,17 +32,13 @@ class Display:
         """ Refresh display after a motion command """
         for y in range(0, self.my - 1):
             n = y + buffer.viewport['y0']
+            attributes = buffer[n]['attributes'][buffer.viewport['x0']:]
             text = buffer[n]['text'][buffer.viewport['x0']:]
-            attributes = None
-            if buffer[n]['attributes'] != None:
-                attributes = buffer[n]['attributes'][buffer.viewport['x0']:]
-            text = buffer[n]['text'][buffer.viewport['x0']:]
+            if len(attributes) != len(text):
+                raise Exception
             for i in range(self.mx):
                 if i < len(text):
-                    if attributes == None:
-                        a = curses.A_NORMAL
-                    else:
-                        a = attributes[i]
+                    a = attributes[i]
                     ch = text[i]
                 else:
                     ch = ' '
@@ -78,6 +76,88 @@ class Keys:
         method = self.methods[key]
         method()
 
+# Default color scheme following vim defaults to
+# have something to start with. It is interesant to
+# see the rough fiddling to get all the Name.*
+# vim recognizes right in pygments (specially the
+# distintion between self, wich is a 'pseudo builtin'
+# and is not highlighted by vim and None, wich has the
+# same type and _is_ highlighted by vim ... no way to
+# workaround that :>
+
+defcolschema = """Text white black
+Whitespace black yellow
+Error white red
+Keyword.Namespace magenta black
+Keyword yellow black
+Name.Class cyan black
+Name.Function cyan black
+Name.Exception green black
+Name.Builtin.Pseudo white black
+Name.Builtin cyan black
+Name white black
+Literal.String.Escape magenta black
+Literal red black
+String red black
+Number red black
+Punctuation white black
+Comment blue black
+Other red black"""
+
+
+class Highlighter:
+    """ Class that fills the ncurses attributes of a text using Pygments """
+    def __init__(self, buffer):
+        self.b = buffer
+        self.token_colors = {}
+        # first scan uses all the text to determine the lexer
+        t = self.b.extract_text(0, buffer.length())
+        try:
+            self.lexer = pygments.lexers.guess_lexer(t['text'])
+        except pygments.util.ClassNotFound:
+            # No lexer found
+            self.lexer = None
+        # ncurses colors table
+        self.__colors = {'black': 0, 'red': 1, 'green': 2,
+        'yellow': 3, 'blue': 4, 'magenta': 5, 'cyan': 6, 'white': 7}
+        # default color scheme
+        self.setcolorschema(defcolschema)
+
+    def setcolorschema(self, text):
+        i = 1   # First color pair settable is 1, 0 is fixed to white on black
+        for token in text.split('\n'):
+            tk = token.split()
+            curses.init_pair(i, self.__colors[tk[1]], self.__colors[tk[2]])
+            c = pygments.token.string_to_tokentype('Token.' + tk[0])
+            self.token_colors[c] = {'color': curses.color_pair(i)}
+            i += 1
+
+    def __get_attribute_for_token_type(self, tokentype):
+        ''' 'split' the token into it's hierarchy and search for
+             it in order in the loaded dictionary '''
+        types = tokentype.split()
+        if types == None:
+            return curses.color_pair(0)
+        types.reverse()
+        for tt in types:
+            try:
+                attribute = self.token_colors[tt]['color']
+                return attribute
+            except KeyError:
+                pass
+        return curses.color_pair(1)
+
+    def scan(self, since, to):
+        t = self.b.extract_text(since, to)
+        index = 0
+        for tokentype, value in self.lexer.get_tokens(t['text']):
+            attribute = self.__get_attribute_for_token_type(tokentype)
+            for i in range(len(value)):
+                if (i + index) < len(t['attributes']):
+                    t['attributes'][i + index] = attribute
+            index += len(value)
+        self.b.insert_text(t)
+
 
 class Buffer:
     """ Loaded file with associated c and viewport positions """
@@ -85,11 +165,16 @@ class Buffer:
         self.lines = []
         self.cursor = {'x': 0, 'y': 0, 'max': 0}
         self.viewport = {'x0': 0, 'y0': 0, 'x1': x1, 'y1': y1}
+        self.high = None
 
     def open(self, path):
         self.lines = []
         for l in open(path).readlines():
-            self.lines.append({'text': l[:-1], 'attributes': None})
+            self.lines.append({'text': l[:-1],
+                    'attributes': ([curses.A_NORMAL] * (len(l) - 1))})
+
+        self.high = Highlighter(self)
+        self.high.scan(0, len(self.lines))
 
     def __getitem__(self, n):
         return self.lines[n]
@@ -151,7 +236,7 @@ class Buffer:
             c.__cursor_and_viewport_adjustement()
 
     def __cursor_max_reset(c):
-        """ Any deliverated movement left or right should reset the max """
+        """ Any deliberate movement left or right should reset the max """
         c.cursor['max'] = c.cursor['x']
 
     def cursor_left(c):
@@ -165,6 +250,39 @@ class Buffer:
             c.cursor['x'] = c.cursor['x'] + 1
             c.__cursor_max_reset()
             c.__cursor_and_viewport_adjustement()
+
+    def extract_text(self, since, to):
+        """ Return a dictionary with the addresses passed and
+            a raw buffer "text" from a range of lines
+            This text can be modified by a external function
+            and reinserted with insert_text in place
+        """
+        t = ''
+        a = []
+        for n in range(since, to):
+            t += self[n]['text'] + '\n'
+            for at in self[n]['attributes']:
+                a.append(at)
+            a.append(curses.A_NORMAL)
+            # +1 for the \n so both text and attributes have same length
+        if len(t) != len(a):
+            raise Exception(str(len(t)) + ' ' + str(len(a)) + ' ' + str(a))
+        return {'since': since, 'to': to, 'text': t[:-1], 'attributes': a[:-1]}
+
+    def insert_text(self, text):
+        """ Fill the text and attributes in place """
+        lines = text['text'].split('\n')
+        if len(lines) != (text['to'] - text['since']):
+            raise Exception
+        index = text['since']
+        cindex = 0
+        for line in lines:
+            attributes = text['attributes'][cindex:(cindex + len(line))]
+            if len(attributes) != len(line):
+                raise Exception
+            cindex += len(line) + 1  # skip the padding curses.A_NORMAL
+            self.lines[index] = {'text': line, 'attributes': attributes}
+            index += 1
 
 
 class Vy:
