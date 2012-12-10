@@ -77,8 +77,8 @@ class Keys:
         method()
 
 # Default color scheme following vim defaults to
-# have something to start with. It is interesant to
-# see the rough fiddling to get all the Name.*
+# have something to start with. It is interesting to
+# observe the rough fiddling to get all the Name.*
 # vim recognizes right in pygments (specially the
 # distintion between self, wich is a 'pseudo builtin'
 # and is not highlighted by vim and None, wich has the
@@ -301,6 +301,7 @@ class Vy:
         pass
 
 
+# default keybindings
 def main(stdscr, argv):
     d = Display(stdscr)
     b = Buffer(d.mx - 1, d.my - 2)
@@ -311,17 +312,17 @@ def main(stdscr, argv):
     vy.set_current(b)
 
     # Command mode commands
-    k.bind(['k', curses.KEY_UP], b.cursor_up)
-    k.bind(['j', curses.KEY_DOWN], b.cursor_down)
+    k.bind(['k', '-', curses.KEY_UP, 16], b.cursor_up)
+    k.bind(['j', '+', curses.KEY_DOWN, 14], b.cursor_down)
     k.bind(['h', curses.KEY_LEFT], b.cursor_left)
-    k.bind(['l', curses.KEY_RIGHT], b.cursor_right)
+    k.bind(['l', ' ', curses.KEY_RIGHT], b.cursor_right)
     k.bind('/', vy.search)
     d.show(b)
 
     while True:
         c = d.getkey()
         k.process(c)
-        d.status(str(b.cursor) + str(b.viewport))
+        d.status(str(b.cursor) + str(b.viewport) + str(int(c)))
         d.show(b)
 
 
