@@ -32,8 +32,12 @@ class Display:
         """ Refresh display after a motion command """
         for y in range(0, self.my - 1):
             n = y + buffer.viewport['y0']
-            attributes = buffer[n]['attributes'][buffer.viewport['x0']:]
-            text = buffer[n]['text'][buffer.viewport['x0']:]
+            try:
+                attributes = buffer[n]['attributes'][buffer.viewport['x0']:]
+                text = buffer[n]['text'][buffer.viewport['x0']:]
+            except IndexError:  # End of file
+                attributes = [curses.A_NORMAL]
+                text = '~'
             if len(attributes) != len(text):
                 raise Exception
             for i in range(self.mx):
@@ -54,6 +58,9 @@ class Display:
 
     def getkey(self):
         return self.stdscr.getch()
+
+    def getmaxy(self):
+        return self.my
 
 
 class Keys:
@@ -119,7 +126,8 @@ class Highlighter:
             self.lexer = None
         # ncurses colors table
         self.__colors = {'black': 0, 'red': 1, 'green': 2,
-        'yellow': 3, 'blue': 4, 'magenta': 5, 'cyan': 6, 'white': 7}
+                         'yellow': 3, 'blue': 4, 'magenta': 5,
+                         'cyan': 6, 'white': 7}
         # default color scheme
         self.setcolorschema(defcolschema)
 
@@ -136,7 +144,7 @@ class Highlighter:
         ''' 'split' the token into it's hierarchy and search for
              it in order in the loaded dictionary '''
         types = tokentype.split()
-        if types == None:
+        if types is None:
             return curses.color_pair(0)
         types.reverse()
         for tt in types:
@@ -165,13 +173,15 @@ class Buffer:
         self.lines = []
         self.cursor = {'x': 0, 'y': 0, 'max': 0}
         self.viewport = {'x0': 0, 'y0': 0, 'x1': x1, 'y1': y1}
+        self.height = y1
         self.high = None
 
     def open(self, path):
         self.lines = []
         for l in open(path).readlines():
             self.lines.append({'text': l[:-1],
-                    'attributes': ([curses.A_NORMAL] * (len(l) - 1))})
+                               'attributes': ([curses.A_NORMAL] *
+                                              (len(l) - 1))})
 
         self.high = Highlighter(self)
         self.high.scan(0, len(self.lines))
@@ -183,7 +193,10 @@ class Buffer:
         return len(self.lines)
 
     def current_line(self):
-        return self.lines[self.cursor['y']]['text']
+        try:
+            return self.lines[self.cursor['y']]['text']
+        except IndexError:
+            return ''
 
     def __cursor_adjustement(c):
         """ If the next line does not have enough characters
@@ -284,6 +297,28 @@ class Buffer:
             self.lines[index] = {'text': line, 'attributes': attributes}
             index += 1
 
+    def avpag(self):
+        # Avpag and move cursor vi-alike
+        delta = self.height - 1
+        if ((self.viewport['y0'] + delta) > len(self.lines)):
+            delta = (len(self.lines) - self.viewport['y0'] - 1)
+        self.viewport['y0'] += delta
+        self.viewport['y1'] += delta
+        self.cursor['y'] = self.viewport['y0']
+        self.__cursor_and_viewport_adjustement()
+
+    def repag(self):
+        delta = self.height - 1
+        if ((self.viewport['y0'] - delta) < 0):
+            delta = self.viewport['y0']
+        self.viewport['y0'] -= delta
+        self.viewport['y1'] -= delta
+        if (self.viewport['y1'] > (len(self.lines) - 1)):
+            self.cursor['y'] = len(self.lines) - 1
+        else:
+            self.cursor['y'] = self.viewport['y1']
+        self.__cursor_and_viewport_adjustement()
+
 
 class Vy:
     def __init__(self, display):
@@ -313,16 +348,19 @@ def main(stdscr, argv):
 
     # Command mode commands
     k.bind(['k', '-', curses.KEY_UP, 16], b.cursor_up)
-    k.bind(['j', '+', curses.KEY_DOWN, 14], b.cursor_down)
+    k.bind(['j', '+', curses.KEY_DOWN, 14, 10], b.cursor_down)
     k.bind(['h', curses.KEY_LEFT], b.cursor_left)
     k.bind(['l', ' ', curses.KEY_RIGHT], b.cursor_right)
+    k.bind([curses.KEY_NPAGE, 6], b.avpag)
+    k.bind([curses.KEY_PPAGE, 2], b.repag)
     k.bind('/', vy.search)
     d.show(b)
 
     while True:
         c = d.getkey()
         k.process(c)
-        d.status(str(b.cursor) + str(b.viewport) + str(int(c)))
+        d.status(''.join([' ' * (d.mx - 2)]))
+        d.status(str(b.cursor) + ' ' + str(b.viewport) + ' ' + str(int(c)))
         d.show(b)
 
 
