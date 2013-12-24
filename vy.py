@@ -27,6 +27,20 @@ class Display:
     def __init__(self, stdscr):
         self.stdscr = stdscr
         self.my, self.mx = self.stdscr.getmaxyx()
+        self.status_a = [curses.A_NORMAL * (self.mx - 1)]
+        self.status_t = [' ' * (self.mx - 1)]
+
+    def update_line(self, y, attributes, text):
+        if len(attributes) != len(text):
+            raise Exception('{} {}'.format(len(attributes), len(text)))
+        for i in range(self.mx):
+            if i < len(text):
+                a = attributes[i]
+                ch = text[i]
+            else:
+                ch = ' '
+                a = curses.A_NORMAL
+            self.stdscr.addch(y, i, ch, a)
 
     def show(self, buffer):
         """ Refresh display after a motion command """
@@ -38,23 +52,33 @@ class Display:
             except IndexError:  # End of file
                 attributes = [curses.A_NORMAL]
                 text = '~'
-            if len(attributes) != len(text):
-                raise Exception
-            for i in range(self.mx):
-                if i < len(text):
-                    a = attributes[i]
-                    ch = text[i]
-                else:
-                    ch = ' '
-                    a = curses.A_NORMAL
-                self.stdscr.addch(y, i, ch, a)
+            self.update_line(y, attributes, text)
+        # self.update_line(self.my, self.status_a, self.status_t)
         rx = buffer.cursor['x'] - buffer.viewport['x0']
         ry = buffer.cursor['y'] - buffer.viewport['y0']
         self.stdscr.move(ry, rx)
         self.stdscr.refresh()
 
     def status(self, line):
-        self.stdscr.addstr(self.my - 1, 0, line, self.mx - 1)
+        # position, line, length):
+        self.stdscr.addnstr(self.my - 1, 0, line, self.mx - 1)
+
+    def print_in_statusline(self, position, string, length):
+        if position < 0:
+            x = len(self.status_t) + position
+        else:
+            x = position
+        # fill = ''.join([' ' * length])
+        for i in range(len(string)):
+            try:
+                self.status_t[x + i] = ' '
+            except:
+                raise Exception(str(self.status_t))
+                # str(x + i))
+        for i in range(len(string)):
+            c = string[i]
+            self.status_t[x + i] = c
+        # self.stdscr.addnstr(self.my - 1, x, string, length)
 
     def getkey(self):
         return self.stdscr.getch()
@@ -179,7 +203,7 @@ class Buffer:
     def open(self, path):
         self.lines = []
         for l in open(path).readlines():
-            self.lines.append({'text': l[:-1],
+            self.lines.append({'text': list(l[:-1]),
                                'attributes': ([curses.A_NORMAL] *
                                               (len(l) - 1))})
 
@@ -273,7 +297,7 @@ class Buffer:
         t = ''
         a = []
         for n in range(since, to):
-            t += self[n]['text'] + '\n'
+            t += (''.join(self[n]['text'])) + '\n'
             for at in self[n]['attributes']:
                 a.append(at)
             a.append(curses.A_NORMAL)
@@ -297,8 +321,8 @@ class Buffer:
             self.lines[index] = {'text': line, 'attributes': attributes}
             index += 1
 
-    def avpag(self):
-        # Avpag and move cursor vi-alike
+    def page_forward(self):
+        ''' Avpag and move cursor vi-alike '''
         delta = self.height - 1
         if ((self.viewport['y0'] + delta) > len(self.lines)):
             delta = (len(self.lines) - self.viewport['y0'] - 1)
@@ -307,7 +331,7 @@ class Buffer:
         self.cursor['y'] = self.viewport['y0']
         self.__cursor_and_viewport_adjustement()
 
-    def repag(self):
+    def page_backwards(self):
         delta = self.height - 1
         if ((self.viewport['y0'] - delta) < 0):
             delta = self.viewport['y0']
@@ -318,6 +342,22 @@ class Buffer:
         else:
             self.cursor['y'] = self.viewport['y1']
         self.__cursor_and_viewport_adjustement()
+
+    def cursor_to_eol(self):
+        ''' Move Cursor to End-of-Line '''
+        eol = len(self.current_line())
+        self.cursor['x'] = (eol - 1) if eol > 0 else 0
+        # End of line means end of all lines, thus ...
+        self.cursor['max'] = self.cursor['x'] + 65536
+
+    def cursor_to_bol(self):
+        ''' Move to First Character in Line '''
+        self.cursor['x'] = 0
+
+    def refresh_status(self, display):
+        pass
+        #display.print_in_statusline(-18, '{},{}'.format(self.cursor['y'],
+        #                                                self.cursor['x']), 8)
 
 
 class Vy:
@@ -336,7 +376,6 @@ class Vy:
         pass
 
 
-# default keybindings
 def main(stdscr, argv):
     d = Display(stdscr)
     b = Buffer(d.mx - 1, d.my - 2)
@@ -351,17 +390,18 @@ def main(stdscr, argv):
     k.bind(['j', '+', curses.KEY_DOWN, 14, 10], b.cursor_down)
     k.bind(['h', curses.KEY_LEFT], b.cursor_left)
     k.bind(['l', ' ', curses.KEY_RIGHT], b.cursor_right)
-    k.bind([curses.KEY_NPAGE, 6], b.avpag)
-    k.bind([curses.KEY_PPAGE, 2], b.repag)
+    k.bind([curses.KEY_NPAGE, 6], b.page_forward)
+    k.bind([curses.KEY_PPAGE, 2], b.page_backwards)
+    k.bind(['$', curses.KEY_EOL], b.cursor_to_eol)
+    k.bind(['0', curses.KEY_HOME], b.cursor_to_bol)
     k.bind('/', vy.search)
     d.show(b)
 
     while True:
         c = d.getkey()
         k.process(c)
-        d.status(''.join([' ' * (d.mx - 2)]))
-        d.status(str(b.cursor) + ' ' + str(b.viewport) + ' ' + str(int(c)))
         d.show(b)
+        b.refresh_status(d)
 
 
 if len(sys.argv) < 2:
