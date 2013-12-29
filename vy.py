@@ -50,12 +50,15 @@ class Display:
     def show(self, buffer):
         """ Refresh display after a motion command """
         for y in range(0, self.my - 1):
-            n = y + buffer.viewport['y0']
+            n = y + buffer.viewport.y0
             self.update_line(y, buffer[n])
         self.update_line(self.my - 1, self.status)
-        rx = buffer.cursor['x'] - buffer.viewport['x0']
-        ry = buffer.cursor['y'] - buffer.viewport['y0']
-        self.stdscr.move(ry, rx)
+        if buffer.mode != buffer.STATUS:
+            rx = buffer.cursor.x - buffer.viewport.x0
+            ry = buffer.cursor.y - buffer.viewport.y0
+            self.stdscr.move(ry, rx)
+        else:
+            self.stdscr.move(self.my - 1, buffer.sx)
         self.stdscr.refresh()
 
     def status(self, line):
@@ -73,6 +76,9 @@ class Display:
             self.status[x + i] = c
         for i in range(len(string), length):
             self.status[x + i] = ' '
+
+    def clear_statusline(self):
+        self.print_in_statusline(0, ' ', self.mx)
 
     def getkey(self):
         return get_char(self.stdscr)
@@ -129,6 +135,7 @@ class Keys:
         self.default = {}
         self.methods[Buffer.COMMAND] = {}
         self.methods[Buffer.INSERT] = {}
+        self.methods[Buffer.STATUS] = {}
 
     def bind(self, mode, key, method):
         if type(key) in (tuple, list):
@@ -346,15 +353,27 @@ class Line:
         else:
             return len(self.chars) - 1
 
+class Cursor:
+    def __init__(self):
+        self.x = 0
+        self.y = 0
+        self.max = 0
+
+class Viewport:
+    def __init__(self, x1, y1):
+        self.x0 = self.y0 = 0
+        self.x1 = x1
+        self.y1 = y1
 
 class Buffer:
     COMMAND = 0
     INSERT = 1
+    STATUS = 2
     """ Loaded file with associated c and viewport positions """
     def __init__(self, x1, y1, display):
         self.lines = []
-        self.cursor = {'x': 0, 'y': 0, 'max': 0}
-        self.viewport = {'x0': 0, 'y0': 0, 'x1': x1, 'y1': y1}
+        self.cursor = Cursor()
+        self.viewport = Viewport(x1, y1)
         self.height = y1
         self.high = None
         self.mode = self.COMMAND
@@ -381,75 +400,75 @@ class Buffer:
 
     def current_line(self):
         try:
-            return self.lines[self.cursor['y']]
+            return self.lines[self.cursor.y]
         except IndexError:
             return ['']
 
     def __cursor_adjustement(c):
         """ If the next line does not have enough characters
             or the cursor to be positioned on the same x,
-            adjust it and store the last position in cursor['max']
-            restore position to cursor['max'] if after moving to
+            adjust it and store the last position in cursor.max
+            restore position to cursor.max if after moving to
             the new line it fits
         """
         li = c.current_line().last_index(c.mode)
         if li == -1:
-            c.cursor['x'] = 0
-        elif c.cursor['max'] > c.cursor['x']:
-            if li >= c.cursor['max']:
-                c.cursor['x'] = c.cursor['max']
+            c.cursor.x = 0
+        elif c.cursor.max > c.cursor.x:
+            if li >= c.cursor.max:
+                c.cursor.x = c.cursor.max
             else:
-                c.cursor['x'] = li
-        elif li < c.cursor['x']:
-            c.cursor['max'] = c.cursor['x']
-            c.cursor['x'] = li
+                c.cursor.x = li
+        elif li < c.cursor.x:
+            c.cursor.max = c.cursor.x
+            c.cursor.x = li
 
     def __viewport_adjustement(c):
-        if c.cursor['x'] > c.viewport['x1']:
-            delta = c.cursor['x'] - c.viewport['x1']
-            c.viewport['x0'] += delta
-            c.viewport['x1'] += delta
-        elif c.cursor['x'] < c.viewport['x0']:
-            delta = c.viewport['x0'] - c.cursor['x']
-            c.viewport['x1'] -= delta
-            c.viewport['x0'] -= delta
-        if c.cursor['y'] > c.viewport['y1']:
-            delta = c.cursor['y'] - c.viewport['y1']
-            c.viewport['y0'] += delta
-            c.viewport['y1'] += delta
-        elif c.cursor['y'] < c.viewport['y0']:
-            delta = c.viewport['y0'] - c.cursor['y']
-            c.viewport['y1'] -= delta
-            c.viewport['y0'] -= delta
+        if c.cursor.x > c.viewport.x1:
+            delta = c.cursor.x - c.viewport.x1
+            c.viewport.x0 += delta
+            c.viewport.x1 += delta
+        elif c.cursor.x < c.viewport.x0:
+            delta = c.viewport.x0 - c.cursor.x
+            c.viewport.x1 -= delta
+            c.viewport.x0 -= delta
+        if c.cursor.y > c.viewport.y1:
+            delta = c.cursor.y - c.viewport.y1
+            c.viewport.y0 += delta
+            c.viewport.y1 += delta
+        elif c.cursor.y < c.viewport.y0:
+            delta = c.viewport.y0 - c.cursor.y
+            c.viewport.y1 -= delta
+            c.viewport.y0 -= delta
 
     def __cursor_and_viewport_adjustement(c):
         c.__cursor_adjustement()
         c.__viewport_adjustement()
 
     def cursor_up(c, k):
-        if not c.cursor['y'] == 0:
-            c.cursor['y'] -= 1
+        if not c.cursor.y == 0:
+            c.cursor.y -= 1
             c.__cursor_and_viewport_adjustement()
 
     def cursor_down(c, k):
-        if (c.length() - 1) > c.cursor['y']:
-            c.cursor['y'] += 1
+        if (c.length() - 1) > c.cursor.y:
+            c.cursor.y += 1
             c.__cursor_and_viewport_adjustement()
 
     def __cursor_max_reset(c):
         """ Any deliberate movement left or right should reset the max """
-        c.cursor['max'] = c.cursor['x']
+        c.cursor.max = c.cursor.x
 
     def cursor_left(c, k):
-        if not c.cursor['x'] == 0:
-            c.cursor['x'] -= 1
+        if not c.cursor.x == 0:
+            c.cursor.x -= 1
             c.__cursor_max_reset()
             c.__cursor_and_viewport_adjustement()
 
     def cursor_right(c, k):
-        if (c.current_line().last_index(c.mode) > (c.cursor['x'] -
-                                                   c.viewport['x0'])):
-            c.cursor['x'] = c.cursor['x'] + 1
+        if (c.current_line().last_index(c.mode) > (c.cursor.x -
+                                                   c.viewport.x0)):
+            c.cursor.x = c.cursor.x + 1
             c.__cursor_max_reset()
             c.__cursor_and_viewport_adjustement()
 
@@ -471,36 +490,36 @@ class Buffer:
     def page_forward(self, key):
         ''' Avpag and move cursor vi-alike '''
         delta = self.height - 1
-        if ((self.viewport['y0'] + delta) > len(self.lines)):
-            delta = (len(self.lines) - self.viewport['y0'] - 1)
-        self.viewport['y0'] += delta
-        self.viewport['y1'] += delta
-        self.cursor['y'] = self.viewport['y0']
+        if ((self.viewport.y0 + delta) > len(self.lines)):
+            delta = (len(self.lines) - self.viewport.y0 - 1)
+        self.viewport.y0 += delta
+        self.viewport.y1 += delta
+        self.cursor.y = self.viewport.y0
         self.__cursor_and_viewport_adjustement()
 
     def page_backwards(self, key):
         delta = self.height - 1
-        if ((self.viewport['y0'] - delta) < 0):
-            delta = self.viewport['y0']
-        self.viewport['y0'] -= delta
-        self.viewport['y1'] -= delta
-        if (self.viewport['y1'] > (len(self.lines) - 1)):
-            self.cursor['y'] = len(self.lines) - 1
+        if ((self.viewport.y0 - delta) < 0):
+            delta = self.viewport.y0
+        self.viewport.y0 -= delta
+        self.viewport.y1 -= delta
+        if (self.viewport.y1 > (len(self.lines) - 1)):
+            self.cursor.y = len(self.lines) - 1
         else:
-            self.cursor['y'] = self.viewport['y1']
+            self.cursor.y = self.viewport.y1
         self.__cursor_and_viewport_adjustement()
 
     def cursor_to_eol(self, key):
         ''' Move Cursor to End-of-Line '''
         eol = self.current_line().last_index(self.mode)
-        self.cursor['x'] = eol if eol >= 0 else 0
+        self.cursor.x = eol if eol >= 0 else 0
         # End of line means end of all lines, thus ...
-        self.cursor['max'] = self.cursor['x'] + 65536
+        self.cursor.max = self.cursor.x + 65536
 
     def cursor_to_bol(self, key):
         ''' Move to First Character in Line '''
-        self.cursor['x'] = 0
-        self.cursor['max'] = 0
+        self.cursor.x = 0
+        self.cursor.max = 0
 
     def refresh_status(self, display, ch):
         if type(ch) == unicode:
@@ -509,11 +528,11 @@ class Buffer:
         if len(self.current_line()) <= 0:
             current_char = u' '
         else:
-            current_char = self.current_line()[self.cursor['x']].ch
+            current_char = self.current_line()[self.cursor.x].ch
         if current_char == '\n':
             current_char = '$'
-        i = '{}/{},{}/{} [{}] [{}]'.format(self.cursor['y'], len(self.lines),
-                                           self.cursor['x'],
+        i = '{}/{},{}/{} [{}] [{}]'.format(self.cursor.y, len(self.lines),
+                                           self.cursor.x,
                                            len(self.current_line()),
                                            current_char, ch)
         display.print_in_statusline(-30, i, 30)
@@ -526,8 +545,8 @@ class Buffer:
             self.mode = self.COMMAND
             self.display.print_in_statusline(0, '-- COMMAND --', 20)
             # Adjust cursor if it is over the '\n'
-            if self.cursor['x'] > self.current_line().last_index(self.mode):
-                self.cursor['x'] = self.current_line().last_index(self.mode)
+            if self.cursor.x > self.current_line().last_index(self.mode):
+                self.cursor.x = self.current_line().last_index(self.mode)
 
     def append(self, key):
         # Supposedly we are in COMMAND mode when this is run, so
@@ -565,68 +584,126 @@ class Buffer:
         # ch = key.encode('utf-8')
         ch = key
         self.display.print_in_statusline(40, '[{}]'.format(ch), 10)
-        index = self.cursor['x']
-        self.insert_element(self.lines[self.cursor['y']], index,
+        index = self.cursor.x
+        self.insert_element(self.lines[self.cursor.y], index,
                             Char(ch, curses.A_NORMAL))
         self.cursor_right('@')
         self.__cursor_and_viewport_adjustement()
 
     def delete_char_at_cursor(self, key):
-        index = self.cursor['x']
+        index = self.cursor.x
         l = len(self.current_line())
         if l == 1:
-            del self.lines[self.cursor['y']]
+            del self.lines[self.cursor.y]
             # self.cursor_down(key)
         elif index == (l - 1):
             self.delete_char_before_cursor(key)
         else:
-            self.delete_element(self.lines[self.cursor['y']], index)
+            self.delete_element(self.lines[self.cursor.y], index)
 
     def delete_char_before_cursor(self, key):
-        x = self.cursor['x']
+        x = self.cursor.x
         if x == 0:
             # If we are in the first character, move up and join
-            y = self.cursor['y']
+            y = self.cursor.y
             if y == 0:
                 return
             self.cursor_up(key)
             # I would prefer to use join(), but join trims
-            y = self.cursor['y']
+            y = self.cursor.y
             self.cursor_to_eol(key)
             self.lines[y].add(self.lines[y + 1], False)
             del self.lines[y + 1]
             return
-        self.cursor['x'] -= 1
+        self.cursor.x -= 1
         self.delete_char_at_cursor(key)
 
     def join(self, key):
         # Join has many inconsistences; what happens when you join
         # in an empty line? what happens when you join an empty line?
-        y = self.cursor['y']
+        y = self.cursor.y
         # Move to eol if not already there
         self.cursor_to_eol(key)
         self.lines[y].add(self.lines[y + 1], True)
         del self.lines[y + 1]
 
     def enter(self, key):
-        y = self.cursor['y']
-        new_line = self.lines[y].split(self.cursor['x'])
+        y = self.cursor.y
+        new_line = self.lines[y].split(self.cursor.x)
         self.lines = self.lines[:(y + 1)] + [new_line] + self.lines[(y + 1):]
-        self.cursor['x'] = 0
-        self.cursor['max'] = 0
-        self.cursor['y'] += 1
+        self.cursor.x = 0
+        self.cursor.max = 0
+        self.cursor.y += 1
         self.__cursor_and_viewport_adjustement()
 
     def tab(self, key):
         # Move to the next tab stop
-        x = self.cursor['x']
+        x = self.cursor.x
         nspaces = 4 - (x % 4)
         for i in range(nspaces):
             self.insert_char(u' ')
 
+    def status(self, key):
+        self.mode = self.STATUS
+        self.display.clear_statusline()
+        self.display.print_in_statusline(0, key, 1)
+        self.sx = 1
+
+    def status_up(self, key):
+        # TODO Filtered history up
+        pass
+
+    def status_down(self, key):
+        # TODO Filtered history down
+        pass
+
+    def status_left(self, key):
+        if self.sx > 1:
+            self.sx -= 1
+        pass
+
+    def status_right(self, key):
+        if self.sx < self.display.mx - 2:
+            self.sx +=1
+        pass
+
+    def status_enter(self, key):
+        self.status_cancel(key)
+
+    def status_cancel(self, key):
+        self.mode = self.COMMAND
+        self.display.clear_statusline()
+
+    def status_tab(self, key):
+        # TODO autocompletion
+        pass
+
+    def status_insert(self, key):
+        self.insert_element(self.display.status, self.sx,
+                            Char(key, curses.A_NORMAL))
+        self.status_right('@')
+
+    def status_backspace(self, key):
+        if self.sx == 1:
+            self.status_cancel(key)
+        self.sx -= 1
+        self.status_delete(key)
+
+    def status_delete(self, key):
+        l = len(self.display.status)
+        if l == 1:
+           return
+        if self.sx  == l - 1:
+            self.status_backspace(key)
+        else:
+            self.delete_element(self.display.status, self.sx)
+
     def error(self, key):
         pass
 
+class Commands:
+    def __init__(self):
+        pass
 
 class Vy:
     def __init__(self, display):
@@ -657,20 +734,35 @@ def main(stdscr, argv):
     # Command mode commands
     k.bind(b.COMMAND, [u'k', u'-', curses.KEY_UP, 16], b.cursor_up)
     k.bind(b.COMMAND, [u'j', u'+', curses.KEY_DOWN, 14, 10], b.cursor_down)
-    k.bind(b.COMMAND, [u'h', curses.KEY_LEFT], b.cursor_left)
+    k.bind(b.COMMAND, [u'h', curses.KEY_LEFT, 8], b.cursor_left)
     k.bind(b.COMMAND, [u'l', u' ', curses.KEY_RIGHT], b.cursor_right)
     k.bind(b.COMMAND, [curses.KEY_NPAGE, 6], b.page_forward)
     k.bind(b.COMMAND, [curses.KEY_PPAGE, 2], b.page_backwards)
     k.bind(b.COMMAND, [u'$', 70], b.cursor_to_eol)
     k.bind(b.COMMAND, [u'0', 72], b.cursor_to_bol)
     k.bind(b.COMMAND, [u'i'], b.insert)
-    k.bind(b.COMMAND, [u'/'], vy.search)
     k.bind(b.COMMAND, [u'x'], b.delete_char_at_cursor)
     k.bind(b.COMMAND, [u'X'], b.delete_char_before_cursor)
     k.bind(b.COMMAND, [u'J'], b.join)
     k.bind(b.COMMAND, [u'a'], b.append)
+    # Enter 'Status' mode with this commands
+    k.bind(b.COMMAND, [u'/'], b.status)
+    k.bind(b.COMMAND, [u'?'], b.status)
+    k.bind(b.COMMAND, [u':'], b.status)
     # Default command for the rest of keys
     k.bind(b.COMMAND, None, b.error)
+
+    # Statusline commands
+    k.bind(b.STATUS, [curses.KEY_UP], b.status_up)
+    k.bind(b.STATUS, [curses.KEY_DOWN], b.status_down)
+    k.bind(b.STATUS, [curses.KEY_LEFT], b.status_left)
+    k.bind(b.STATUS, [curses.KEY_RIGHT], b.status_right)
+    k.bind(b.STATUS, [10], b.status_enter)
+    k.bind(b.STATUS, [27], b.status_cancel)
+    k.bind(b.STATUS, [9], b.status_tab)
+    k.bind(b.STATUS, [curses.KEY_BACKSPACE], b.status_backspace)
+    k.bind(b.STATUS, [curses.KEY_DC], b.status_delete)
+    k.bind(b.STATUS, None, b.status_insert)
 
     # Insert mode commands
     k.bind(b.INSERT, [curses.KEY_UP], b.cursor_up)
@@ -683,7 +775,7 @@ def main(stdscr, argv):
     k.bind(b.INSERT, [72], b.cursor_to_bol)
     k.bind(b.INSERT, [27], b.insert)
     k.bind(b.INSERT, [curses.KEY_DC], b.delete_char_at_cursor)
-    k.bind(b.INSERT, [curses.KEY_BACKSPACE], b.delete_char_before_cursor)
+    k.bind(b.INSERT, [curses.KEY_BACKSPACE, 8], b.delete_char_before_cursor)
     k.bind(b.INSERT, [10], b.enter)
     k.bind(b.INSERT, [9], b.tab)
     # Default comman for the rest of keys (insert char)
@@ -694,7 +786,8 @@ def main(stdscr, argv):
     while True:
         key = d.getkey()
         k.process(key, b.mode)
-        b.refresh_status(d, key)
+        if b.mode != b.STATUS:
+            b.refresh_status(d, key)
         d.show(b)
 
 if len(sys.argv) < 2:
