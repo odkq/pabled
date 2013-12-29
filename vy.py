@@ -318,7 +318,7 @@ class Line:
     def add(self, line, trim=False):
         # Join another line
         # If the line to append only contains the '\n', do nothing
-        if len(line) == 1:
+        if len(line) <= 1:
             return
         # First delete the last '\n'
         del self.chars[-1]
@@ -585,7 +585,16 @@ class Buffer:
     def delete_char_before_cursor(self, key):
         x = self.cursor['x']
         if x == 0:
-            # TODO: Join with line before
+            # If we are in the first character, move up and join
+            y = self.cursor['y']
+            if y == 0:
+                return
+            self.cursor_up(key)
+            # I would prefer to use join(), but join trims
+            y = self.cursor['y']
+            self.cursor_to_eol(key)
+            self.lines[y].add(self.lines[y + 1], False)
+            del self.lines[y + 1]
             return
         self.cursor['x'] -= 1
         self.delete_char_at_cursor(key)
@@ -595,7 +604,7 @@ class Buffer:
         # in an empty line? what happens when you join an empty line?
         y = self.cursor['y']
         # Move to eol if not already there
-        self.cursor_to_eol(self)
+        self.cursor_to_eol(key)
         self.lines[y].add(self.lines[y + 1], True)
         del self.lines[y + 1]
 
