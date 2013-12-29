@@ -29,21 +29,18 @@ class Display:
     def __init__(self, stdscr):
         self.stdscr = stdscr
         self.my, self.mx = self.stdscr.getmaxyx()
-        self.status_a = list([curses.A_NORMAL] * (self.mx - 3))
-        self.status_t = list([' '] * (self.mx - 3))
+        self.status = Line(u' ' * (self.mx))
 
-    def update_line(self, y, attributes, text):
-        if len(attributes) != len(text):
-            raise Exception('{} {}'.format(len(attributes), len(text)))
+    def update_line(self, y, line):
         # If it is the last line, do not write in the last cell
         if y == (self.my - 1):
             r = self.mx - 1
         else:
             r = self.mx
         for i in range(r):
-            if i < len(text):
-                a = attributes[i]
-                ch = text[i]
+            if i < len(line):
+                a = line[i].attr
+                ch = line[i].ch
             else:
                 ch = u' '
                 a = curses.A_NORMAL
@@ -54,14 +51,8 @@ class Display:
         """ Refresh display after a motion command """
         for y in range(0, self.my - 1):
             n = y + buffer.viewport['y0']
-            try:
-                attributes = buffer[n]['attributes'][buffer.viewport['x0']:]
-                text = buffer[n]['text'][buffer.viewport['x0']:]
-            except IndexError:  # End of file
-                attributes = [curses.A_NORMAL]
-                text = '~'
-            self.update_line(y, attributes, text)
-        self.update_line(self.my - 1, self.status_a, self.status_t)
+            self.update_line(y, buffer[n])
+        self.update_line(self.my - 1, self.status)
         rx = buffer.cursor['x'] - buffer.viewport['x0']
         ry = buffer.cursor['y'] - buffer.viewport['y0']
         self.stdscr.move(ry, rx)
@@ -73,16 +64,15 @@ class Display:
 
     def print_in_statusline(self, position, string, length):
         if position < 0:
-            x = len(self.status_t) + position
+            x = len(self.status) + position
         else:
             x = position
         # fill = ''.join([' ' * length])
         for i in range(len(string)):
             c = string[i]
-            self.status_t[x + i] = c
+            self.status[x + i] = c
         for i in range(len(string), length):
-            self.status_t[x + i] = ' '
-        # self.stdscr.addnstr(self.my - 1, x, string, length)
+            self.status[x + i] = ' '
 
     def getkey(self):
         return get_char(self.stdscr)
@@ -93,7 +83,7 @@ class Display:
 
 # Workaround for win.getch
 # https://groups.google.com/forum/#!topic/comp.lang.python/Z9zjDwonQqY
-# by Inigo Serna, modified to handle keys
+# by Inigo Serna, modified to handle curses 'special keys'
 def get_char(win):
     def get_check_next_byte():
         c = win.getch()
@@ -104,7 +94,10 @@ def get_char(win):
 
     bytes = []
     c = win.getch()
-    if c <= 127:
+    if c < 32:
+        # Control+char, return as is
+        return c
+    elif c <= 127:
         # 1 bytes
         bytes.append(c)
     elif 194 <= c <= 223:
@@ -193,7 +186,7 @@ Other red black"""
 
 
 class Highlighter:
-    """ Fills the ncurses attributes of a text using Pygments """
+    """ Fills the ncurses of the text using Pygments """
     def __init__(self, buffer):
         self.b = buffer
         self.token_colors = {}
@@ -242,10 +235,116 @@ class Highlighter:
         for tokentype, value in self.lexer.get_tokens(t['text']):
             attribute = self.__get_attribute_for_token_type(tokentype)
             for i in range(len(value)):
-                if (i + index) < len(t['attributes']):
-                    t['attributes'][i + index] = attribute
+                (t['refs'][i + index]).attr = attribute
+                # if (i + index) < len(t['attributes']):
             index += len(value)
-        self.b.insert_text(t)
+
+
+class Char:
+    ''' Encapsulate both a character (as a unicode string)
+        and it's attributes '''
+    def __init__(self, ch, attr):
+        if ch.__class__.__name__ != 'unicode':
+            raise Exception(ch.__class__.__name__ + ' -> ' + str(ch))
+        else:
+            self.ch = ch
+        if attr is None:
+            self.attr = curses.A_NORMAL
+        else:
+            self.attr = attr
+
+
+class Line:
+    ''' Class wrapping a line '''
+    def __init__(self, string, attrs=None):
+        self.chars = []
+        if string[-1] != u'\n':
+            self.noeol = True
+            string += u'\n'
+        i = 0
+        lists = list(string)
+        while True:
+            try:
+                if attrs is not None:
+                    attr = attrs[i]
+                else:
+                    attr = curses.A_NORMAL
+                char = Char(lists[i], attr)
+                self.chars.append(char)
+            except IndexError:
+                break
+            i += 1
+
+    def get_string_and_refs(self, refs, index):
+        ''' Return the line as an string and update
+            a dictionary of 'references' with pairs of
+            'position': Char. This is used by the Highlighter '''
+        s = []
+        for c in self.chars:
+            s.append(c.ch)
+            refs[index] = c
+            index += 1
+        return (''.join(s), index)
+
+    def __getitem__(self, n):
+        ''' Return the Char of a certain position '''
+        return self.chars[n]
+
+    def __setitem__(self, key, value):
+        ''' Set the character for a position. If passed an array
+            of [char, attribute], set also the attribute. If
+            passed a Char object, simply assign it'''
+        if type(value) == list:
+            self.chars[key].ch = value[0]
+            self.chars[key].attr = value[1]
+        elif value.__class__.__name__ == 'Char':
+            self.chars[key] = value
+        else:
+            try:
+                self.chars[key].ch = value
+            except IndexError:
+                pass
+                # raise Exception(key)
+
+    def __len__(self):
+        return len(self.chars)
+
+    def __delitem__(self, key):
+        del self.chars[key]
+
+    def append(self, ch):
+        return self.chars.append(ch)
+
+    def add(self, line, trim=False):
+        # Join another line
+        # If the line to append only contains the '\n', do nothing
+        if len(line) == 1:
+            return
+        # First delete the last '\n'
+        del self.chars[-1]
+        for char in line:   # Trim only for a join
+            if trim:
+                if char.ch == u' ' or char.ch == u'\t':
+                    continue
+                else:
+                    self.chars.append(Char(u' ', None))  # Append one space
+                    trim = False
+            self.chars.append(char)
+
+    def split(self, position):
+        ''' Return a new line from position to the end '''
+        r = Line(u'\n')
+        r.chars = self.chars[position:]
+        self.chars = self.chars[:position]
+        return r
+
+    def last_index(self, mode):
+        ''' Return last indexable character in line.
+            This is from o to len(self.chars) removing the last '\n' '''
+        if mode == Buffer.COMMAND:
+            return len(self.chars) - 2
+        else:
+            return len(self.chars) - 1
 
 
 class Buffer:
@@ -264,22 +363,25 @@ class Buffer:
     def open(self, path):
         self.lines = []
         for l in open(path).readlines():
-            self.lines.append({'text': list((l[:-1]).decode('utf-8')),
-                               'attributes': ([curses.A_NORMAL] *
-                                              (len(l) - 1))})
+            # l[:-1]
+            line = Line((l).decode('utf-8'))
+            self.lines.append(line)
 
         self.high = Highlighter(self)
         self.high.scan(0, len(self.lines))
 
     def __getitem__(self, n):
-        return self.lines[n]
+        try:
+            return self.lines[n]
+        except IndexError:
+            return Line('~'.decode('utf-8'))
 
     def length(self):
         return len(self.lines)
 
     def current_line(self):
         try:
-            return self.lines[self.cursor['y']]['text']
+            return self.lines[self.cursor['y']]
         except IndexError:
             return ['']
 
@@ -290,16 +392,17 @@ class Buffer:
             restore position to cursor['max'] if after moving to
             the new line it fits
         """
-        if len(c.current_line()) == 0:
+        li = c.current_line().last_index(c.mode)
+        if li == -1:
             c.cursor['x'] = 0
         elif c.cursor['max'] > c.cursor['x']:
-            if len(c.current_line()) >= c.cursor['max']:
+            if li >= c.cursor['max']:
                 c.cursor['x'] = c.cursor['max']
             else:
-                c.cursor['x'] = len(c.current_line()) - 1
-        elif (len(c.current_line()) - 1) < c.cursor['x']:
+                c.cursor['x'] = li
+        elif li < c.cursor['x']:
             c.cursor['max'] = c.cursor['x']
-            c.cursor['x'] = len(c.current_line()) - 1
+            c.cursor['x'] = li
 
     def __viewport_adjustement(c):
         if c.cursor['x'] > c.viewport['x1']:
@@ -344,7 +447,8 @@ class Buffer:
             c.__cursor_and_viewport_adjustement()
 
     def cursor_right(c, k):
-        if (len(c.current_line()) - 1) > (c.cursor['x'] - c.viewport['x0']):
+        if (c.current_line().last_index(c.mode) > (c.cursor['x'] -
+                                                   c.viewport['x0'])):
             c.cursor['x'] = c.cursor['x'] + 1
             c.__cursor_max_reset()
             c.__cursor_and_viewport_adjustement()
@@ -356,32 +460,13 @@ class Buffer:
             and reinserted with insert_text in place
         """
         t = ''
-        a = []
+        refs = {}
+        index = 0
         for n in range(since, to):
-            t += (''.join(self[n]['text'])) + '\n'
-            for at in self[n]['attributes']:
-                a.append(at)
-            a.append(curses.A_NORMAL)
-            # +1 for the \n so both text and attributes have same length
-        if len(t) != len(a):
-            raise Exception(str(len(t)) + ' ' + str(len(a)) + ' ' + str(a))
-        return {'since': since, 'to': to, 'text': t[:-1], 'attributes': a[:-1]}
-
-    def insert_text(self, text):
-        """ Fill the text and attributes in place """
-        lines = text['text'].split('\n')
-        if len(lines) != (text['to'] - text['since']):
-            raise Exception('insert_text(): lines to insert != range')
-        index = text['since']
-        cindex = 0
-        for line in lines:
-            attributes = text['attributes'][cindex:(cindex + len(line))]
-            if len(attributes) != len(line):
-                raise Exception('insert_text(): attributes != line')
-            cindex += len(line) + 1  # skip the padding curses.A_NORMAL
-            # Reinsert line as a list of chars (not string)
-            self.lines[index] = {'text': list(line), 'attributes': attributes}
-            index += 1
+            string, index = self.lines[n].get_string_and_refs(refs, index)
+            t += string
+        return {'since': since, 'to': to, 'text': t, 'refs': refs}
+        # +1 for the \n so both text and attributes have same length
 
     def page_forward(self, key):
         ''' Avpag and move cursor vi-alike '''
@@ -407,23 +492,26 @@ class Buffer:
 
     def cursor_to_eol(self, key):
         ''' Move Cursor to End-of-Line '''
-        eol = len(self.current_line())
-        self.cursor['x'] = (eol - 1) if eol > 0 else 0
+        eol = self.current_line().last_index(self.mode)
+        self.cursor['x'] = eol if eol >= 0 else 0
         # End of line means end of all lines, thus ...
         self.cursor['max'] = self.cursor['x'] + 65536
 
     def cursor_to_bol(self, key):
         ''' Move to First Character in Line '''
         self.cursor['x'] = 0
+        self.cursor['max'] = 0
 
     def refresh_status(self, display, ch):
         if type(ch) == unicode:
             ch = ch.encode('utf-8')
 
         if len(self.current_line()) <= 0:
-            current_char = ' '
+            current_char = u' '
         else:
-            current_char = self.current_line()[self.cursor['x']]
+            current_char = self.current_line()[self.cursor['x']].ch
+        if current_char == '\n':
+            current_char = '$'
         i = '{}/{},{}/{} [{}] [{}]'.format(self.cursor['y'], len(self.lines),
                                            self.cursor['x'],
                                            len(self.current_line()),
@@ -437,27 +525,95 @@ class Buffer:
         elif self.mode == self.INSERT:
             self.mode = self.COMMAND
             self.display.print_in_statusline(0, '-- COMMAND --', 20)
+            # Adjust cursor if it is over the '\n'
+            if self.cursor['x'] > self.current_line().last_index(self.mode):
+                self.cursor['x'] = self.current_line().last_index(self.mode)
+
+    def append(self, key):
+        # Supposedly we are in COMMAND mode when this is run, so
+        self.insert(key)
+        self.cursor_right(key)
 
     def insert_element(self, array, position, element):
-        array.append(' ')
         i = len(array) - 1
-        while True:
+        array.append(array[i])
+        while i > position:
             array[i] = array[i - 1]
+            i -= 1
+        array[position] = element
+
+    def delete_element(self, array, position):
+        l = len(array) - 1
+        if l == 0:      # Only the last '\n'
+            # TODO: Join lines
+            return
+        if position == l:
+            # TODO: Join lines
+            return
+        i = l
+        t = array[i]
+        while True:
+            array[i] = t
             i -= 1
             if i == position:
                 break
-        array[position] = element
+            t = array[i]
+        if position != l:
+            del array[position]
 
     def insert_char(self, key):
-        char = key.encode('utf-8')
-        #.('utf-8')
-        self.display.print_in_statusline(40, '[{}]'.format(char), 10)
-        # current_line = self.lines[self.cursor['y']]['text']
+        # ch = key.encode('utf-8')
+        ch = key
+        self.display.print_in_statusline(40, '[{}]'.format(ch), 10)
         index = self.cursor['x']
-        self.insert_element(self.lines[self.cursor['y']]['text'], index, char)
-        self.insert_element(self.lines[self.cursor['y']]['attributes'], index,
-                            curses.A_NORMAL)
+        self.insert_element(self.lines[self.cursor['y']], index,
+                            Char(ch, curses.A_NORMAL))
         self.cursor_right('@')
+        self.__cursor_and_viewport_adjustement()
+
+    def delete_char_at_cursor(self, key):
+        index = self.cursor['x']
+        l = len(self.current_line())
+        if l == 1:
+            del self.lines[self.cursor['y']]
+            # self.cursor_down(key)
+        elif index == (l - 1):
+            self.delete_char_before_cursor(key)
+        else:
+            self.delete_element(self.lines[self.cursor['y']], index)
+
+    def delete_char_before_cursor(self, key):
+        x = self.cursor['x']
+        if x == 0:
+            # TODO: Join with line before
+            return
+        self.cursor['x'] -= 1
+        self.delete_char_at_cursor(key)
+
+    def join(self, key):
+        # Join has many inconsistences; what happens when you join
+        # in an empty line? what happens when you join an empty line?
+        y = self.cursor['y']
+        # Move to eol if not already there
+        self.cursor_to_eol(self)
+        self.lines[y].add(self.lines[y + 1], True)
+        del self.lines[y + 1]
+
+    def enter(self, key):
+        y = self.cursor['y']
+        new_line = self.lines[y].split(self.cursor['x'])
+        self.lines = self.lines[:(y + 1)] + [new_line] + self.lines[(y + 1):]
+        self.cursor['x'] = 0
+        self.cursor['max'] = 0
+        self.cursor['y'] += 1
+        self.__cursor_and_viewport_adjustement()
+
+    def tab(self, key):
+        # Move to the next tab stop
+        x = self.cursor['x']
+        nspaces = 4 - (x % 4)
+        for i in range(nspaces):
+            self.insert_char(u' ')
 
     def error(self, key):
         pass
@@ -500,6 +656,10 @@ def main(stdscr, argv):
     k.bind(b.COMMAND, [u'0', 72], b.cursor_to_bol)
     k.bind(b.COMMAND, [u'i'], b.insert)
     k.bind(b.COMMAND, [u'/'], vy.search)
+    k.bind(b.COMMAND, [u'x'], b.delete_char_at_cursor)
+    k.bind(b.COMMAND, [u'X'], b.delete_char_before_cursor)
+    k.bind(b.COMMAND, [u'J'], b.join)
+    k.bind(b.COMMAND, [u'a'], b.append)
     # Default command for the rest of keys
     k.bind(b.COMMAND, None, b.error)
 
@@ -513,6 +673,10 @@ def main(stdscr, argv):
     k.bind(b.INSERT, [70], b.cursor_to_eol)
     k.bind(b.INSERT, [72], b.cursor_to_bol)
     k.bind(b.INSERT, [27], b.insert)
+    k.bind(b.INSERT, [curses.KEY_DC], b.delete_char_at_cursor)
+    k.bind(b.INSERT, [curses.KEY_BACKSPACE], b.delete_char_before_cursor)
+    k.bind(b.INSERT, [10], b.enter)
+    k.bind(b.INSERT, [9], b.tab)
     # Default comman for the rest of keys (insert char)
     k.bind(b.INSERT, None, b.insert_char)
 
