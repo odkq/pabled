@@ -3,7 +3,7 @@
 """
  vy - a small vi clone
 
- Copyright (C) 2012 Pablo Martin <pablo@odkq.com>
+ Copyright (C) 2012, 2013 Pablo Martin <pablo@odkq.com>
 
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -378,6 +378,7 @@ class Buffer:
         self.high = None
         self.mode = self.COMMAND
         self.display = display
+        self.regexp = None
 
     def open(self, path):
         self.lines = []
@@ -643,6 +644,9 @@ class Buffer:
         for i in range(nspaces):
             self.insert_char(u' ')
 
+    def status_first(self):
+        return self.display.status[0].ch
+
     def status(self, key):
         self.mode = self.STATUS
         self.display.clear_statusline()
@@ -668,6 +672,19 @@ class Buffer:
         pass
 
     def status_enter(self, key):
+        # Extract status string
+        refs = {}
+        s, i = self.display.status.get_string_and_refs(refs, 1)
+        s = s[1:].rstrip()
+        #raise Exception('status_first: [' +  str(self.status_first()) +
+        #                '] string: [' + string + ']')
+        first = self.status_first()
+        if first == u'/':
+            self.search(s)
+        elif first == u'?':
+            self.search(s, True)
+        elif first == u':':
+            self.ex(s)
         self.status_cancel(key)
 
     def status_cancel(self, key):
@@ -697,6 +714,37 @@ class Buffer:
             self.status_backspace(key)
         else:
             self.delete_element(self.display.status, self.sx)
+
+    def search(self, pattern=None, reverse=False):
+        y = self.cursor.y
+        if pattern == None:
+            if self.regexp == None:
+                self.display.print_in_statusline(0,'-- No regexp --', 20)
+                return
+            else:
+                pattern = self.regexp
+        else:
+            self.regexp = pattern
+        if reverse:
+            ran = reversed(range(0, y - 1))
+        else:
+            ran = range(y + 1, len(self.lines))
+        for i in ran:
+            r = {}
+            s, j = self.lines[i].get_string_and_refs(r, 0)
+            n = s.find(pattern)
+            if n != -1:
+                self.cursor.x = n
+                self.cursor.y = i
+                self.__cursor_and_viewport_adjustement()
+                return
+        self.display.print_in_statusline(0, '-- Not found --', 20)
+
+    def repeat_find_forward(self, key):
+        self.search()
+
+    def repeat_find_backward(self, key):
+        self.search(reverse=True)
 
     def error(self, key):
         pass
@@ -745,6 +793,9 @@ def main(stdscr, argv):
     k.bind(b.COMMAND, [u'X'], b.delete_char_before_cursor)
     k.bind(b.COMMAND, [u'J'], b.join)
     k.bind(b.COMMAND, [u'a'], b.append)
+    k.bind(b.COMMAND, [u'n'], b.repeat_find_forward)
+    k.bind(b.COMMAND, [u'N'], b.repeat_find_backward)
+
     # Enter 'Status' mode with this commands
     k.bind(b.COMMAND, [u'/'], b.status)
     k.bind(b.COMMAND, [u'?'], b.status)
