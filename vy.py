@@ -335,7 +335,7 @@ class Line:
         ''' Return a new line from position to the end '''
         r = Line(u'\n')
         r.chars = self.chars[position:]
-        self.chars = self.chars[:position]
+        self.chars = self.chars[:position] + [Char(u'\n', None)]
         return r
 
     def last_index(self, mode):
