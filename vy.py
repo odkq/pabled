@@ -22,7 +22,7 @@ import pygments
 import pygments.lexers
 import curses
 import sys
-
+import re
 
 class Display:
     """ Abstract ncurses interface """
@@ -725,6 +725,7 @@ class Buffer:
                 pattern = self.regexp
         else:
             self.regexp = pattern
+        prog = re.compile(pattern)
         if reverse:
             ran = reversed(range(0, y - 1))
         else:
@@ -732,9 +733,10 @@ class Buffer:
         for i in ran:
             r = {}
             s, j = self.lines[i].get_string_and_refs(r, 0)
-            n = s.find(pattern)
-            if n != -1:
-                self.cursor.x = n
+            # n = s.find(pattern)
+            m = prog.search(s)
+            if m is not None:
+                self.cursor.x = m.start()
                 self.cursor.y = i
                 self.__cursor_and_viewport_adjustement()
                 return
@@ -745,6 +747,9 @@ class Buffer:
 
     def repeat_find_backward(self, key):
         self.search(reverse=True)
+
+    def ex(self, command):
+        pass
 
     def error(self, key):
         pass
