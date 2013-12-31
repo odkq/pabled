@@ -10,12 +10,14 @@ Featuring:
 Requirements
 ------------
 
-Requires Python 2.7 and pygments. To install on Debian Wheezy:
+Requires Python 2.7, setuptools and pygments. To install on Debian Wheezy:
 
-        apt-get install python-pygments
+        apt-get install python-pygments python-setuptools
 
 Installation
 ------------
 Install system-wide, with executable in /usr/bin/vy:
 
         sudo python ./setup.py install
+
+
