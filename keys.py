@@ -20,6 +20,7 @@
 
 from vy.buffer import Buffer
 
+
 class Keys:
     """ Map c keys or key arrays to functions """
     def __init__(self):

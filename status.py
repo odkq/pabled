@@ -20,6 +20,7 @@
 import curses
 from vy import Char
 
+
 class StatusLine:
     ''' Status Line handler. Extracted from
         Buffer for convenience '''
@@ -44,12 +45,10 @@ class StatusLine:
     def status_left(self, key):
         if self.sx > 1:
             self.sx -= 1
-        pass
 
     def status_right(self, key):
         if self.sx < self.display.mx - 2:
-            self.sx +=1
-        pass
+            self.sx += 1
 
     def status_enter(self, key):
         # Extract status string
@@ -91,7 +90,7 @@ class StatusLine:
         l = len(self.display.status)
         if l == 1:
             return
-        if self.sx  == l - 1:
+        if self.sx == (l - 1):
             self.status_backspace(key)
         else:
             self.delete_element(self.display.status, self.sx)

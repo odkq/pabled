@@ -103,5 +103,3 @@ class Highlighter:
                 (t['refs'][i + index]).attr = attribute
                 # if (i + index) < len(t['attributes']):
             index += len(value)
-
-

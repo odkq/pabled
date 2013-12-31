@@ -19,6 +19,7 @@
 """
 import curses
 
+
 class Char:
     ''' Encapsulate both a character (as a unicode string)
         and it's attributes '''
@@ -129,11 +130,13 @@ class Line:
         else:
             return len(self.chars) - 1
 
+
 class Cursor:
     def __init__(self):
         self.x = 0
         self.y = 0
         self.max = 0
+
 
 class Viewport:
     def __init__(self, x1, y1):

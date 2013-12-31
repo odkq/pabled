@@ -5,12 +5,12 @@ import sys
 import subprocess
 
 classifiers = [
-   "Development Status :: 2 - Alpha",
-   "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-   "Programming Language :: Python :: 2.7",
-   "Topic :: Text Editors",
-   "Environment :: Console",
-   "Environment :: Console :: Curses",
+    "Development Status :: 2 - Alpha",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 2.7",
+    "Topic :: Text Editors",
+    "Environment :: Console",
+    "Environment :: Console :: Curses",
 ]
 
 if __name__ == '__main__':
@@ -33,10 +33,10 @@ if __name__ == '__main__':
             description="A small vi clone with fancy features",
             author="Pablo Martin Medrano",
             author_email="pablo@odkq.com",
-            package_dir = {'vy': '.'},
+            package_dir={'vy': '.'},
             packages=['vy'],
-            entry_points = {
-                'console_scripts' : {
+            entry_points={
+                'console_scripts': {
                     'vy = vy.main:main_curses'
                 }
             },

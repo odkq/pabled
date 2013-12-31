@@ -20,6 +20,7 @@
 import shlex
 import sys
 
+
 class Ex:
     ''' ex (:) commands handling. Extracted from Buffer for
         convenience '''

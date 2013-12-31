@@ -23,6 +23,7 @@ import sys
 
 from vy import Buffer, Display, Keys
 
+
 class Vy:
     def __init__(self, display):
         self.display = display
@@ -111,11 +112,12 @@ def main(stdscr, argv):
             b.refresh_status(d, key)
         d.show(b)
 
+
 # Entry point in setup.py for the /usr/bin/vy script
 def main_curses():
     if len(sys.argv) < 2:
         print ('Usage: vy <file>')
         sys.exit(0)
 
-    locale.setlocale(locale.LC_ALL,"")
+    locale.setlocale(locale.LC_ALL, "")
     curses.wrapper(main, sys.argv)

@@ -20,6 +20,7 @@
 import curses
 from vy.line import Line
 
+
 class Display:
     """ Abstract ncurses interface """
     def __init__(self, stdscr):
@@ -122,4 +123,3 @@ def get_char(win):
     buf = (''.join([chr(b) for b in bytes])).decode('utf-8')
     # raise Exception(buf.encode('utf-8'))
     return unicode(buf)
-

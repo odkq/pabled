@@ -3,6 +3,7 @@ import curses
 import re
 from vy import Ex, StatusLine, Cursor, Viewport, Line, Highlighter, Char
 
+
 class Buffer(Ex, StatusLine):
     COMMAND = 0
     INSERT = 1
@@ -168,9 +169,9 @@ class Buffer(Ex, StatusLine):
         if current_char == u'\n':
             current_char = u'$'
         i = u'{}/{},{}/{} [{}] [{}]'.format(self.cursor.y, len(self.lines),
-                                           self.cursor.x,
-                                           len(self.current_line()),
-                                           current_char, ch)
+                                            self.cursor.x,
+                                            len(self.current_line()),
+                                            current_char, ch)
         display.print_in_statusline(-30, i, 30)
 
     def insert(self, key):
@@ -217,9 +218,8 @@ class Buffer(Ex, StatusLine):
             del array[position]
 
     def insert_char(self, key):
-        # ch = key.encode('utf-8')
-        # raise Exception(ch)
-        self.display.print_in_statusline(40, '[{}]'.format(key.encode('utf-8')), 10)
+        ch = key.encode('utf-8')
+        self.display.print_in_statusline(40, '[{}]'.format(ch), 10)
         index = self.cursor.x
         self.insert_element(self.lines[self.cursor.y], index,
                             Char(key, curses.A_NORMAL))
@@ -281,9 +281,9 @@ class Buffer(Ex, StatusLine):
 
     def search(self, pattern=None, reverse=False):
         y = self.cursor.y
-        if pattern == None:
-            if self.regexp == None:
-                self.display.print_in_statusline(0,'-- No regexp --', 20)
+        if pattern is None:
+            if self.regexp is None:
+                self.display.print_in_statusline(0, '-- No regexp --', 20)
                 return
             else:
                 pattern = self.regexp
@@ -312,7 +312,6 @@ class Buffer(Ex, StatusLine):
 
     def repeat_find_backward(self, key):
         self.search(reverse=True)
-
 
     def error(self, key):
         pass
