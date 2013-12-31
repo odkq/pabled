@@ -21,6 +21,8 @@
 import pygments
 import pygments.lexers
 import curses
+import locale
+import shlex
 import sys
 import re
 
@@ -44,8 +46,10 @@ class Display:
             else:
                 ch = u' '
                 a = curses.A_NORMAL
-            self.stdscr.addstr(y, i, ch, a)
-            #raise Exception('addch [{}] [{}] [{}] [{}]'.format(y, i, ch, a))
+            if type(ch) == unicode:
+                self.stdscr.addstr(y, i, ch.encode('utf-8'), a)
+            elif type(ch) == str:
+                self.stdscr.addstr(y, i, ch, a)
 
     def show(self, buffer):
         """ Refresh display after a motion command """
@@ -62,7 +66,6 @@ class Display:
         self.stdscr.refresh()
 
     def status(self, line):
-        # position, line, length):
         self.stdscr.addnstr(self.my - 1, 0, line, self.mx - 1)
 
     def print_in_statusline(self, position, string, length):
@@ -70,7 +73,6 @@ class Display:
             x = len(self.status) + position
         else:
             x = position
-        # fill = ''.join([' ' * length])
         for i in range(len(string)):
             c = string[i]
             self.status[x + i] = c
@@ -123,9 +125,9 @@ def get_char(win):
         bytes.append(get_check_next_byte())
     else:   # Not an unicode string, but an encoded 'special key'
         return c
-    buf = ''.join([chr(b) for b in bytes])
-    buf = buf.decode('utf-8')
-    return buf
+    buf = (''.join([chr(b) for b in bytes])).decode('utf-8')
+    # raise Exception(buf.encode('utf-8'))
+    return unicode(buf)
 
 
 class Keys:
@@ -265,9 +267,13 @@ class Line:
     ''' Class wrapping a line '''
     def __init__(self, string, attrs=None):
         self.chars = []
+        # Store wether the string do not end in \n (only
+        # the last line can fit in that, and append the \n
         if string[-1] != u'\n':
             self.noeol = True
             string += u'\n'
+        else:
+            self.noeol = False
         i = 0
         lists = list(string)
         while True:
@@ -365,7 +371,103 @@ class Viewport:
         self.x1 = x1
         self.y1 = y1
 
-class Buffer:
+class StatusLine:
+    ''' Status Line handler. Extracted from
+        Buffer for convenience '''
+
+    def status_first(self):
+        return self.display.status[0].ch
+
+    def status(self, key):
+        self.mode = self.STATUS
+        self.display.clear_statusline()
+        self.display.print_in_statusline(0, key, 1)
+        self.sx = 1
+
+    def status_up(self, key):
+        # TODO Filtered history up
+        pass
+
+    def status_down(self, key):
+        # TODO Filtered history down
+        pass
+
+    def status_left(self, key):
+        if self.sx > 1:
+            self.sx -= 1
+        pass
+
+    def status_right(self, key):
+        if self.sx < self.display.mx - 2:
+            self.sx +=1
+        pass
+
+    def status_enter(self, key):
+        # Extract status string
+        refs = {}
+        s, i = self.display.status.get_string_and_refs(refs, 1)
+        s = s[1:].rstrip()
+        #raise Exception('status_first: [' +  str(self.status_first()) +
+        #                '] string: [' + string + ']')
+        first = self.status_first()
+        if first == u'/':
+            self.search(s)
+        elif first == u'?':
+            self.search(s, True)
+        elif first == u':':
+            self.ex(s)
+        self.mode = self.COMMAND
+        #self.status_cancel(key)
+
+    def status_cancel(self, key):
+        self.mode = self.COMMAND
+        self.display.clear_statusline()
+
+    def status_tab(self, key):
+        # TODO autocompletion
+        pass
+
+    def status_insert(self, key):
+        self.insert_element(self.display.status, self.sx,
+                            Char(key, curses.A_NORMAL))
+        self.status_right('@')
+
+    def status_backspace(self, key):
+        if self.sx == 1:
+            self.status_cancel(key)
+        self.sx -= 1
+        self.status_delete(key)
+
+    def status_delete(self, key):
+        l = len(self.display.status)
+        if l == 1:
+            return
+        if self.sx  == l - 1:
+            self.status_backspace(key)
+        else:
+            self.delete_element(self.display.status, self.sx)
+
+class Ex:
+    ''' ex (:) commands handling. Extracted from Buffer for
+        convenience '''
+    def __init__(self):
+        self.history = []
+
+    def ex(self, line):
+        s = shlex.split(line)
+        cmd = s[0]
+        args = s[1:]
+        function = getattr(self, cmd)
+        function(args)
+
+    def write(self, *args):
+        a = args[0]
+        if len(a) == 0:
+            self.display.print_in_statusline(0, '-- write default --', 20)
+        else:
+            self.display.print_in_statusline(0, '-- write ' + a[0] + '--', 20)
+
+class Buffer(Ex, StatusLine):
     COMMAND = 0
     INSERT = 1
     STATUS = 2
@@ -523,16 +625,13 @@ class Buffer:
         self.cursor.max = 0
 
     def refresh_status(self, display, ch):
-        if type(ch) == unicode:
-            ch = ch.encode('utf-8')
-
         if len(self.current_line()) <= 0:
             current_char = u' '
         else:
             current_char = self.current_line()[self.cursor.x].ch
-        if current_char == '\n':
-            current_char = '$'
-        i = '{}/{},{}/{} [{}] [{}]'.format(self.cursor.y, len(self.lines),
+        if current_char == u'\n':
+            current_char = u'$'
+        i = u'{}/{},{}/{} [{}] [{}]'.format(self.cursor.y, len(self.lines),
                                            self.cursor.x,
                                            len(self.current_line()),
                                            current_char, ch)
@@ -583,11 +682,11 @@ class Buffer:
 
     def insert_char(self, key):
         # ch = key.encode('utf-8')
-        ch = key
-        self.display.print_in_statusline(40, '[{}]'.format(ch), 10)
+        # raise Exception(ch)
+        self.display.print_in_statusline(40, '[{}]'.format(key.encode('utf-8')), 10)
         index = self.cursor.x
         self.insert_element(self.lines[self.cursor.y], index,
-                            Char(ch, curses.A_NORMAL))
+                            Char(key, curses.A_NORMAL))
         self.cursor_right('@')
         self.__cursor_and_viewport_adjustement()
 
@@ -644,77 +743,6 @@ class Buffer:
         for i in range(nspaces):
             self.insert_char(u' ')
 
-    def status_first(self):
-        return self.display.status[0].ch
-
-    def status(self, key):
-        self.mode = self.STATUS
-        self.display.clear_statusline()
-        self.display.print_in_statusline(0, key, 1)
-        self.sx = 1
-
-    def status_up(self, key):
-        # TODO Filtered history up
-        pass
-
-    def status_down(self, key):
-        # TODO Filtered history down
-        pass
-
-    def status_left(self, key):
-        if self.sx > 1:
-            self.sx -= 1
-        pass
-
-    def status_right(self, key):
-        if self.sx < self.display.mx - 2:
-            self.sx +=1
-        pass
-
-    def status_enter(self, key):
-        # Extract status string
-        refs = {}
-        s, i = self.display.status.get_string_and_refs(refs, 1)
-        s = s[1:].rstrip()
-        #raise Exception('status_first: [' +  str(self.status_first()) +
-        #                '] string: [' + string + ']')
-        first = self.status_first()
-        if first == u'/':
-            self.search(s)
-        elif first == u'?':
-            self.search(s, True)
-        elif first == u':':
-            self.ex(s)
-        self.status_cancel(key)
-
-    def status_cancel(self, key):
-        self.mode = self.COMMAND
-        self.display.clear_statusline()
-
-    def status_tab(self, key):
-        # TODO autocompletion
-        pass
-
-    def status_insert(self, key):
-        self.insert_element(self.display.status, self.sx,
-                            Char(key, curses.A_NORMAL))
-        self.status_right('@')
-
-    def status_backspace(self, key):
-        if self.sx == 1:
-            self.status_cancel(key)
-        self.sx -= 1
-        self.status_delete(key)
-
-    def status_delete(self, key):
-        l = len(self.display.status)
-        if l == 1:
-           return
-        if self.sx  == l - 1:
-            self.status_backspace(key)
-        else:
-            self.delete_element(self.display.status, self.sx)
-
     def search(self, pattern=None, reverse=False):
         y = self.cursor.y
         if pattern == None:
@@ -736,6 +764,7 @@ class Buffer:
             # n = s.find(pattern)
             m = prog.search(s)
             if m is not None:
+                self.display.print_in_statusline(0, u'/' + pattern, 20)
                 self.cursor.x = m.start()
                 self.cursor.y = i
                 self.__cursor_and_viewport_adjustement()
@@ -748,14 +777,8 @@ class Buffer:
     def repeat_find_backward(self, key):
         self.search(reverse=True)
 
-    def ex(self, command):
-        pass
 
     def error(self, key):
-        pass
-
-class Commands:
-    def __init__(self):
         pass
 
 class Vy:
@@ -850,4 +873,5 @@ if len(sys.argv) < 2:
     print ('Usage: vy <file>')
     sys.exit(0)
 
+locale.setlocale(locale.LC_ALL,"")
 curses.wrapper(main, sys.argv)
