@@ -1,4 +1,22 @@
 #!/usr/bin/env python
+"""
+ buffer - bulk of the lines/characters juggling that an editor is in the end
+
+ Copyright (C) 2012, 2013 Pablo Martin <pablo@odkq.com>
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 import curses
 import re
 from vy import Ex, StatusLine, Cursor, Viewport, Line, Highlighter, Char
@@ -10,6 +28,7 @@ class Buffer(Ex, StatusLine):
     STATUS = 2
     """ Loaded file with associated c and viewport positions """
     def __init__(self, x1, y1, display):
+        Ex.__init__(self)
         self.lines = []
         self.cursor = Cursor()
         self.viewport = Viewport(x1, y1)
@@ -18,6 +37,7 @@ class Buffer(Ex, StatusLine):
         self.mode = self.COMMAND
         self.display = display
         self.regexp = None
+        self.path = ''
 
     def open(self, path):
         self.lines = []
@@ -28,6 +48,7 @@ class Buffer(Ex, StatusLine):
 
         self.high = Highlighter(self)
         self.high.scan(0, len(self.lines))
+        self.path = path
 
     def __getitem__(self, n):
         try:
