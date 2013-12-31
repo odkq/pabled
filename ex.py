@@ -18,7 +18,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import shlex
-
+import sys
 
 class Ex:
     ''' ex (:) commands handling. Extracted from Buffer for
@@ -40,3 +40,5 @@ class Ex:
         else:
             self.display.print_in_statusline(0, '-- write ' + a[0] + '--', 20)
 
+    def quit(self, *args):
+        sys.exit(0)
