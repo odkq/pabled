@@ -40,7 +40,7 @@ class Commands:
         for l in self.lines:
             for char in l.chars:
                 if not (char.ch == u'\n' and l.noeol):
-                    f.write(char.ch)
+                    f.write(char.ch.encode('utf-8'))
         f.close()
         self.display.print_in_statusline(0, '-- wrote ' + path + '--', 20)
 
