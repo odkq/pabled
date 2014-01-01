@@ -51,7 +51,7 @@ Other red black"""
 
 
 class Highlighter:
-    """ Fills the ncurses of the text using Pygments """
+    """ Fill the ncurses of the text using Pygments """
     def __init__(self, buffer):
         self.b = buffer
         self.token_colors = {}
@@ -66,7 +66,7 @@ class Highlighter:
         self.__colors = {'black': 0, 'red': 1, 'green': 2,
                          'yellow': 3, 'blue': 4, 'magenta': 5,
                          'cyan': 6, 'white': 7}
-        # default color scheme
+        # default color schema
         self.setcolorschema(defcolschema)
 
     def setcolorschema(self, text):
