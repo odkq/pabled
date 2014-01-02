@@ -46,18 +46,18 @@ class Display:
             elif type(ch) == str:
                 self.stdscr.addstr(y, i, ch, a)
 
-    def show(self, buffer):
+    def show(self, buf):
         """ Refresh display after a motion command """
         for y in range(0, self.my - 1):
-            n = y + buffer.viewport.y0
-            self.update_line(y, buffer[n])
+            n = y + buf.viewport.y0
+            self.update_line(y, buf[n])
         self.update_line(self.my - 1, self.status)
-        if buffer.mode != buffer.STATUS:
-            rx = buffer.cursor.x - buffer.viewport.x0
-            ry = buffer.cursor.y - buffer.viewport.y0
+        if buf.mode != buf.STATUS:
+            rx = buf.cursor.x - buf.viewport.x0
+            ry = buf.cursor.y - buf.viewport.y0
             self.stdscr.move(ry, rx)
         else:
-            self.stdscr.move(self.my - 1, buffer.sx)
+            self.stdscr.move(self.my - 1, buf.sx)
         self.stdscr.refresh()
 
     def status(self, line):

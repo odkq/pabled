@@ -17,6 +17,7 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import inspect
 import curses
 import locale
 import sys
@@ -30,87 +31,110 @@ class Vy:
         self.buffers = []
         self.y = 0
 
-    def add_buffer(self, buffer):
-        self.buffers.append(buffer)
+    def add_buffer(self, buf):
+        self.buffers.append(buf)
 
-    def set_current(self, buffer):
-        self.current = buffer
+    def set_current(self, buf):
+        self.current = buf
 
     def search(self):
         pass
 
 
+def set_command_mode_keys(keys, buf):
+    cmds = [
+        # Command mode commands
+        [[u'k', u'-', curses.KEY_UP, 16], 'cursor_up'],
+        [[u'j', u'+', curses.KEY_DOWN, 14, 10], 'cursor_down'],
+        [[u'h', curses.KEY_LEFT, 8], 'cursor_left'],
+        [[u'l', u' ', curses.KEY_RIGHT], 'cursor_right'],
+        [[curses.KEY_NPAGE, 6], 'page_forward'],
+        [[curses.KEY_PPAGE, 2], 'page_backwards'],
+        [[u'$', 70], 'cursor_to_eol'],
+        [[u'0', 72], 'cursor_to_bol'],
+        [[u'i'], 'insert'],
+        [[u'x'], 'delete_char_at_cursor'],
+        [[u'X'], 'delete_char_before_cursor'],
+        [[u'J'], 'join'],
+        [[u'a'], 'append'],
+        [[u'n'], 'repeat_find_forward'],
+        [[u'N'], 'repeat_find_backward'],
+        [[u'/'], 'status'],
+        [[u'?'], 'status'],
+        [[u':'], 'status'],
+        [[u'N'], 'repeat_find_backward'],
+        [None, 'error']
+    ]
+    bind_array(keys, Buffer.COMMAND, cmds, buf)
+
+
+def set_status_mode_keys(keys, buf):
+    cmds = [
+        [[curses.KEY_UP], 'status_up'],
+        [[curses.KEY_DOWN], 'status_down'],
+        [[curses.KEY_LEFT], 'status_left'],
+        [[curses.KEY_RIGHT], 'status_right'],
+        [[10], 'status_enter'],
+        [[27], 'status_cancel'],
+        [[9], 'status_tab'],
+        [[curses.KEY_BACKSPACE], 'status_backspace'],
+        [[curses.KEY_DC], 'status_delete'],
+        [None, 'status_insert']
+    ]
+    bind_array(keys, Buffer.STATUS, cmds, buf)
+
+
+def set_insert_mode_keys(keys, buf):
+    cmds = [
+        # Insert mode commands
+        [[curses.KEY_UP], 'cursor_up'],
+        [[curses.KEY_DOWN], 'cursor_down'],
+        [[curses.KEY_LEFT], 'cursor_left'],
+        [[curses.KEY_RIGHT], 'cursor_right'],
+        [[curses.KEY_NPAGE], 'page_forward'],
+        [[curses.KEY_PPAGE], 'page_backwards'],
+        [[70], 'cursor_to_eol'],
+        [[72], 'cursor_to_bol'],
+        [[27], 'insert'],
+        [[curses.KEY_DC], 'delete_char_at_cursor'],
+        [[curses.KEY_BACKSPACE, 8], 'delete_char_before_cursor'],
+        [[10], 'enter'],
+        [[9], 'tab'],
+        # Default command for the rest of keys (insert char'],
+        [None, 'insert_char']
+    ]
+    bind_array(keys, Buffer.INSERT, cmds, buf)
+
+
+def bind_array(keys, mode, cmds, buf):
+    for cmd in cmds:
+        members = inspect.getmembers(buf, predicate=inspect.ismethod)
+        for name, method in members:
+            if name == cmd[1]:
+                keys.bind(mode, cmd[0], method)
+
+
 def main(stdscr, argv):
-    d = Display(stdscr)
-    b = Buffer(d.mx - 1, d.my - 2, d)
-    k = Keys()
-    vy = Vy(d)
-    b.open(argv[1])
-    b.refresh_status(d, '@')
-    vy.add_buffer(b)
-    vy.set_current(b)
+    display = Display(stdscr)
+    buf = Buffer(display.mx - 1, display.my - 2, display)
+    keys = Keys()
+    vy = Vy(display)
+    buf.open(argv[1])
+    buf.refresh_status(display, '@')
+    vy.add_buffer(buf)
+    vy.set_current(buf)
+    set_command_mode_keys(keys, buf)
+    set_status_mode_keys(keys, buf)
+    set_insert_mode_keys(keys, buf)
 
-    # Command mode commands
-    k.bind(b.COMMAND, [u'k', u'-', curses.KEY_UP, 16], b.cursor_up)
-    k.bind(b.COMMAND, [u'j', u'+', curses.KEY_DOWN, 14, 10], b.cursor_down)
-    k.bind(b.COMMAND, [u'h', curses.KEY_LEFT, 8], b.cursor_left)
-    k.bind(b.COMMAND, [u'l', u' ', curses.KEY_RIGHT], b.cursor_right)
-    k.bind(b.COMMAND, [curses.KEY_NPAGE, 6], b.page_forward)
-    k.bind(b.COMMAND, [curses.KEY_PPAGE, 2], b.page_backwards)
-    k.bind(b.COMMAND, [u'$', 70], b.cursor_to_eol)
-    k.bind(b.COMMAND, [u'0', 72], b.cursor_to_bol)
-    k.bind(b.COMMAND, [u'i'], b.insert)
-    k.bind(b.COMMAND, [u'x'], b.delete_char_at_cursor)
-    k.bind(b.COMMAND, [u'X'], b.delete_char_before_cursor)
-    k.bind(b.COMMAND, [u'J'], b.join)
-    k.bind(b.COMMAND, [u'a'], b.append)
-    k.bind(b.COMMAND, [u'n'], b.repeat_find_forward)
-    k.bind(b.COMMAND, [u'N'], b.repeat_find_backward)
-
-    # Enter 'Status' mode with this commands
-    k.bind(b.COMMAND, [u'/'], b.status)
-    k.bind(b.COMMAND, [u'?'], b.status)
-    k.bind(b.COMMAND, [u':'], b.status)
-    # Default command for the rest of keys
-    k.bind(b.COMMAND, None, b.error)
-
-    # Statusline commands
-    k.bind(b.STATUS, [curses.KEY_UP], b.status_up)
-    k.bind(b.STATUS, [curses.KEY_DOWN], b.status_down)
-    k.bind(b.STATUS, [curses.KEY_LEFT], b.status_left)
-    k.bind(b.STATUS, [curses.KEY_RIGHT], b.status_right)
-    k.bind(b.STATUS, [10], b.status_enter)
-    k.bind(b.STATUS, [27], b.status_cancel)
-    k.bind(b.STATUS, [9], b.status_tab)
-    k.bind(b.STATUS, [curses.KEY_BACKSPACE], b.status_backspace)
-    k.bind(b.STATUS, [curses.KEY_DC], b.status_delete)
-    k.bind(b.STATUS, None, b.status_insert)
-
-    # Insert mode commands
-    k.bind(b.INSERT, [curses.KEY_UP], b.cursor_up)
-    k.bind(b.INSERT, [curses.KEY_DOWN], b.cursor_down)
-    k.bind(b.INSERT, [curses.KEY_LEFT], b.cursor_left)
-    k.bind(b.INSERT, [curses.KEY_RIGHT], b.cursor_right)
-    k.bind(b.INSERT, [curses.KEY_NPAGE], b.page_forward)
-    k.bind(b.INSERT, [curses.KEY_PPAGE], b.page_backwards)
-    k.bind(b.INSERT, [70], b.cursor_to_eol)
-    k.bind(b.INSERT, [72], b.cursor_to_bol)
-    k.bind(b.INSERT, [27], b.insert)
-    k.bind(b.INSERT, [curses.KEY_DC], b.delete_char_at_cursor)
-    k.bind(b.INSERT, [curses.KEY_BACKSPACE, 8], b.delete_char_before_cursor)
-    k.bind(b.INSERT, [10], b.enter)
-    k.bind(b.INSERT, [9], b.tab)
-    # Default comman for the rest of keys (insert char)
-    k.bind(b.INSERT, None, b.insert_char)
-
-    d.show(b)
+    display.show(buf)
 
     while True:
-        key = d.getkey()
-        k.process(key, b.mode)
-        if b.mode != b.STATUS:
-            b.refresh_status(d, key)
-        d.show(b)
+        key = display.getkey()
+        keys.process(key, buf.mode)
+        if buf.mode != buf.STATUS:
+            buf.refresh_status(display, key)
+        display.show(buf)
 
 
 # Entry point in setup.py for the /usr/bin/vy script
