@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
- ex - Implementation of ex (: ) commands
+ ex - Implementation of very few ex (: ) commands
 
  Copyright (C) 2012, 2013 Pablo Martin <pablo@odkq.com>
 
@@ -19,6 +19,7 @@
 """
 import shlex
 import sys
+import re
 
 
 class Commands:
@@ -30,7 +31,7 @@ class Commands:
         c = [d for d in c if d not in ['__init__', 'get_candidates']]
         self.commands = c
 
-    def write(self, *args):
+    def write(self, args, **kwargs):
         a = args[0]
         if len(a) == 0:
             path = self.path
@@ -44,7 +45,11 @@ class Commands:
         f.close()
         self.display.print_in_statusline(0, '-- wrote ' + path + '--', 20)
 
-    def quit(self, *args):
+    # [range]s[ubstitute]/{pattern}/{string}/[flags] [count]
+    def substitute(self, args, **kwargs):
+        raise Exception('substitute [' + str(args) + '|' + str(kwargs) + ']')
+
+    def quit(self, args, **kwargs):
         sys.exit(0)
 
     def get_candidates(self, pattern):
@@ -58,12 +63,40 @@ class Ex(Commands):
         Commands.__init__(self)
         self.history = []
 
+    def get_range_cmd_arg(self, s):
+        s, rang = self.get_range(s)
+        delimiter = s.find('/')
+        if delimiter == -1:
+            delimiter = s.find('|')
+            if delimiter == -1:
+                return rang, s, None
+        return rang, s[:delimiter], s[delimiter:]
+        # '[10,20]', 's', '/foo/bar/'
+
+    def get_range(self, s):
+        # Extract range [i.e] 10,20 in 10,20s/foo/bar/
+        range_match = re.search('\d+?,\d*\d+?|%|\d+', s)
+        if range_match == None:
+            return s, None
+        rang = s[range_match.start():range_match.end()]
+        s = s[range_match.end():]
+        if rang == '%':
+            return s, None
+        rang = rang.split(',')
+        return s, rang  # 's/foo/bar/' [10, 20]
+
     def ex(self, line):
         s = shlex.split(line)
-        cmd = s[0]
-        args = s[1:]
+        rang, cmd, arg = self.get_range_cmd_arg(s[0])
+        if arg is not None:
+            args = [arg] + s[1:]
+        else:
+            args = [arg] + s[1:]
+        kwargs = {}
+        if rang is not None:
+            kwargs['range'] = rang
         function_name = self.get_candidates(cmd)[0]
         function = Commands.__dict__[function_name]
         # raise Exception(self.get_candidates(cmd)[0])
         # getattr(self, cmd)
-        function(self, args)
+        function(self, args, **kwargs)
