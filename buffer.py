@@ -122,6 +122,15 @@ class Buffer(Ex, StatusLine):
 
     def cursor_left(c, k):
         if not c.cursor.x == 0:
+            # Jump over indentation
+            x = c.cursor.x
+            if (x >= 4) and ((x % 4) == 0):
+                line = c.current_line()
+                for si in range(x - 4, x - 1):
+                    if line[si].ch != u' ':
+                        break
+                else:
+                    c.cursor.x -= 3  # Last one is default
             c.cursor.x -= 1
             c.__cursor_max_reset()
             c.cursor_and_viewport_adjustement()
@@ -129,6 +138,15 @@ class Buffer(Ex, StatusLine):
     def cursor_right(c, k):
         if (c.current_line().last_index(c.mode) > (c.cursor.x -
                                                    c.viewport.x0)):
+            # Jump over indentation
+            x = c.cursor.x
+            line = c.current_line()
+            if len(line) > (x + 4):
+                for si in range(x, x + 4):
+                    if line[si].ch != u' ':
+                        break
+                else:
+                    c.cursor.x += 3  # Last one is default
             c.cursor.x = c.cursor.x + 1
             c.__cursor_max_reset()
             c.cursor_and_viewport_adjustement()
@@ -229,6 +247,17 @@ class Buffer(Ex, StatusLine):
         elif index == (l - 1):
             self.delete_char_before_cursor(key)
         else:
+            if (index % 4) == 0:
+                if l > index + 4:
+                    line = self.current_line()
+                    for si in range(index, index + 4):
+                        if line[si].ch != u' ':
+                            break
+                    else:
+                        # Delete the four spaces
+                        for di in range(4):
+                            delete_element(self.lines[self.cursor.y], index)
+                        return
             delete_element(self.lines[self.cursor.y], index)
 
     def delete_char_before_cursor(self, key):
@@ -245,7 +274,7 @@ class Buffer(Ex, StatusLine):
             self.lines[y].add(self.lines[y + 1], False)
             del self.lines[y + 1]
             return
-        self.cursor.x -= 1
+        self.cursor_left(key)
         self.delete_char_at_cursor(key)
 
     def join(self, key):
