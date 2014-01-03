@@ -1,7 +1,8 @@
 __all__ = ["buffer", "display", "statusline", "ex", "line", "highlight",
            "keys"]
 from .ex import Ex  # noqa
-from .line import Cursor, Viewport, Line, Char  # noqa
+from .line import (Cursor, Viewport, Line, Char, insert_element,  # noqa
+                   delete_element)  # noqa
 from .display import Display  # noqa
 from .status import StatusLine  # noqa
 from .highlight import Highlighter  # noqa

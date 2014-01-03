@@ -35,7 +35,7 @@ class Display:
         else:
             r = self.mx
         for i in range(r):
-            if i < len(line):
+            if i < (len(line) - 1):
                 a = line[i].attr
                 ch = line[i].ch
             else:

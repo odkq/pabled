@@ -19,8 +19,8 @@
 """
 import curses
 import re
-from vy import Ex, StatusLine, Cursor, Viewport, Line, Highlighter, Char
-
+from vy import (Ex, StatusLine, Cursor, Viewport, Line, Highlighter, Char,
+                insert_element, delete_element)
 
 class Buffer(Ex, StatusLine):
     COMMAND = 0
@@ -102,19 +102,19 @@ class Buffer(Ex, StatusLine):
             c.viewport.y1 -= delta
             c.viewport.y0 -= delta
 
-    def __cursor_and_viewport_adjustement(c):
+    def cursor_and_viewport_adjustement(c):
         c.__cursor_adjustement()
         c.__viewport_adjustement()
 
     def cursor_up(c, k):
         if not c.cursor.y == 0:
             c.cursor.y -= 1
-            c.__cursor_and_viewport_adjustement()
+            c.cursor_and_viewport_adjustement()
 
     def cursor_down(c, k):
         if (c.length() - 1) > c.cursor.y:
             c.cursor.y += 1
-            c.__cursor_and_viewport_adjustement()
+            c.cursor_and_viewport_adjustement()
 
     def __cursor_max_reset(c):
         """ Any deliberate movement left or right should reset the max """
@@ -124,14 +124,14 @@ class Buffer(Ex, StatusLine):
         if not c.cursor.x == 0:
             c.cursor.x -= 1
             c.__cursor_max_reset()
-            c.__cursor_and_viewport_adjustement()
+            c.cursor_and_viewport_adjustement()
 
     def cursor_right(c, k):
         if (c.current_line().last_index(c.mode) > (c.cursor.x -
                                                    c.viewport.x0)):
             c.cursor.x = c.cursor.x + 1
             c.__cursor_max_reset()
-            c.__cursor_and_viewport_adjustement()
+            c.cursor_and_viewport_adjustement()
 
     def extract_text(self, since, to):
         """ Return a dictionary with the addresses passed and
@@ -156,7 +156,7 @@ class Buffer(Ex, StatusLine):
         self.viewport.y0 += delta
         self.viewport.y1 += delta
         self.cursor.y = self.viewport.y0
-        self.__cursor_and_viewport_adjustement()
+        self.cursor_and_viewport_adjustement()
 
     def page_backwards(self, key):
         delta = self.height - 1
@@ -168,7 +168,7 @@ class Buffer(Ex, StatusLine):
             self.cursor.y = len(self.lines) - 1
         else:
             self.cursor.y = self.viewport.y1
-        self.__cursor_and_viewport_adjustement()
+        self.cursor_and_viewport_adjustement()
 
     def cursor_to_eol(self, key):
         ''' Move Cursor to End-of-Line '''
@@ -211,41 +211,14 @@ class Buffer(Ex, StatusLine):
         self.insert(key)
         self.cursor_right(key)
 
-    def insert_element(self, array, position, element):
-        i = len(array) - 1
-        array.append(array[i])
-        while i > position:
-            array[i] = array[i - 1]
-            i -= 1
-        array[position] = element
-
-    def delete_element(self, array, position):
-        l = len(array) - 1
-        if l == 0:      # Only the last '\n'
-            # TODO: Join lines
-            return
-        if position == l:
-            # TODO: Join lines
-            return
-        i = l
-        t = array[i]
-        while True:
-            array[i] = t
-            i -= 1
-            if i == position:
-                break
-            t = array[i]
-        if position != l:
-            del array[position]
-
     def insert_char(self, key):
         ch = key.encode('utf-8')
         self.display.print_in_statusline(40, '[{}]'.format(ch), 10)
         index = self.cursor.x
-        self.insert_element(self.lines[self.cursor.y], index,
-                            Char(key, curses.A_NORMAL))
+        insert_element(self.lines[self.cursor.y], index,
+                       Char(key, curses.A_NORMAL))
         self.cursor_right('@')
-        self.__cursor_and_viewport_adjustement()
+        self.cursor_and_viewport_adjustement()
 
     def delete_char_at_cursor(self, key):
         index = self.cursor.x
@@ -256,7 +229,7 @@ class Buffer(Ex, StatusLine):
         elif index == (l - 1):
             self.delete_char_before_cursor(key)
         else:
-            self.delete_element(self.lines[self.cursor.y], index)
+            delete_element(self.lines[self.cursor.y], index)
 
     def delete_char_before_cursor(self, key):
         x = self.cursor.x
@@ -291,7 +264,7 @@ class Buffer(Ex, StatusLine):
         self.cursor.x = 0
         self.cursor.max = 0
         self.cursor.y += 1
-        self.__cursor_and_viewport_adjustement()
+        self.cursor_and_viewport_adjustement()
 
     def tab(self, key):
         # Move to the next tab stop
@@ -302,31 +275,49 @@ class Buffer(Ex, StatusLine):
 
     def search(self, pattern=None, reverse=False):
         y = self.cursor.y
-        if pattern is None:
-            if self.regexp is None:
-                self.display.print_in_statusline(0, '-- No regexp --', 20)
-                return
-            else:
-                pattern = self.regexp
-        else:
-            self.regexp = pattern
-        prog = re.compile(pattern)
+        x = self.cursor.x
         if reverse:
             ran = reversed(range(0, y - 1))
         else:
-            ran = range(y + 1, len(self.lines))
+            ran = range(y, len(self.lines))
+        first = True
         for i in ran:
-            r = {}
-            s, j = self.lines[i].get_string_and_refs(r, 0)
-            # n = s.find(pattern)
-            m = prog.search(s)
-            if m is not None:
+            if first:
+                x = self.cursor.x + 1  # Use cursor on first line to search
+                first = False
+            else:
+                x = 0
+            if pattern is None and self.regexp is None:
+                self.display.print_in_statusline(0, '-- No regexp --', 20)
+                return
+            elif pattern is None and self.regexp is not None:
+                pattern = self.regexp
+            else:
+                self.regexp = pattern
+            start, end = self.find(i, x, pattern)
+            if start is not None:
                 self.display.print_in_statusline(0, u'/' + pattern, 20)
-                self.cursor.x = m.start()
+                self.cursor.x = start
                 self.cursor.y = i
-                self.__cursor_and_viewport_adjustement()
+                self.cursor_and_viewport_adjustement()
                 return
         self.display.print_in_statusline(0, '-- Not found --', 20)
+
+    def find(self, index, x, pattern=None):
+        ''' Return an array of matches on the line'''
+        if pattern is None:
+            if self.reprog is None:
+                return None, None
+        else:
+            # Regexp is global to all (search/replace/etc) commands
+            self.reprog = re.compile(pattern)
+        emptyrefs = {}
+        string, refs = self.lines[index].get_string_and_refs(emptyrefs, 0)
+        haystack = string[x:]
+        match = self.reprog.search(haystack)
+        if match is None:
+            return None, None
+        return (match.start() + x), (match.end() + x)
 
     def repeat_find_forward(self, key):
         self.search()

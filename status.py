@@ -18,7 +18,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import curses
-from vy import Char
+from vy import Char, insert_element, delete_element
 
 
 class StatusLine:
@@ -76,8 +76,8 @@ class StatusLine:
         pass
 
     def status_insert(self, key):
-        self.insert_element(self.display.status, self.sx,
-                            Char(key, curses.A_NORMAL))
+        insert_element(self.display.status, self.sx,
+                       Char(key, curses.A_NORMAL))
         self.status_right('@')
 
     def status_backspace(self, key):
@@ -93,4 +93,4 @@ class StatusLine:
         if self.sx == (l - 1):
             self.status_backspace(key)
         else:
-            self.delete_element(self.display.status, self.sx)
+            delete_element(self.display.status, self.sx)

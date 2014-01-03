@@ -20,6 +20,34 @@
 import curses
 
 
+def insert_element(array, position, element):
+    i = len(array) - 1
+    array.append(array[i])
+    while i > position:
+        array[i] = array[i - 1]
+        i -= 1
+    array[position] = element
+
+def delete_element(array, position):
+    l = len(array) - 1
+    if l == 0:      # Only the last '\n'
+        # TODO: Join lines
+        return
+    if position == l:
+        # TODO: Join lines
+        return
+    i = l
+    t = array[i]
+    while True:
+        array[i] = t
+        i -= 1
+        if i == position:
+            break
+        t = array[i]
+    if position != l:
+        del array[position]
+
+
 class Char:
     ''' Encapsulate both a character (as a unicode string)
         and it's attributes '''
@@ -84,10 +112,10 @@ class Line:
         elif value.__class__.__name__ == 'Char':
             self.chars[key] = value
         else:
-            try:
-                self.chars[key].ch = value
-            except IndexError:
-                pass
+            #try:
+            self.chars[key].ch = value
+            #except IndexError:
+                #pass
                 # raise Exception(key)
 
     def __len__(self):
@@ -114,6 +142,20 @@ class Line:
                     self.chars.append(Char(u' ', None))  # Append one space
                     trim = False
             self.chars.append(char)
+
+    def replace(self, start, end, string):
+        refs = {}
+        ''' Replace from start to end position with the contents of string '''
+        for delindex in reversed(range(start, end)):
+            try:
+                del self.chars[delindex]
+            except:
+                s, i = self.get_string_and_refs(refs, 0)
+                message = '{}:{} -> {} in \'{}\' index {}'
+                raise Exception(message.format(start, end, string, s, delindex))
+        for insertindex in range(start, start + len(string)):
+            c = string[insertindex - start]
+            insert_element(self, insertindex, Char(unicode(c), curses.A_NORMAL))
 
     def split(self, position):
         ''' Return a new line from position to the end '''
