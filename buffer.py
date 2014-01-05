@@ -40,6 +40,8 @@ class Buffer(Ex, StatusLine):
         self.regexp = None
         self.path = ''
 
+        self.visualrange = None
+
     def open(self, path):
         self.lines = []
         for l in open(path).readlines():

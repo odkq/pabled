@@ -26,10 +26,15 @@ class Keys:
     def __init__(self):
         self.methods = {}
         self.default = {}
+        self.count = 0
         self.multi = None  # When in a multikey command, the string so far
         self.methods[Buffer.COMMAND] = {}
         self.methods[Buffer.INSERT] = {}
         self.methods[Buffer.STATUS] = {}
+
+        # Digits in command mode are for count
+        for n in range(10):
+            self.bind(Buffer.COMMAND, unicode(n), self.set_count)
 
     def bind(self, mode, key, method):
         if type(key) in (tuple, list):
@@ -55,6 +60,12 @@ class Keys:
             method = self.methods[mode][key]
         except KeyError:
             method = self.default[mode]
+        if method != self.set_count:
+            if self.count != 0:
+                for i in range(self.count):
+                    method(key)
+                self.count = 0
+                return
         method(key)
 
     def process_multi(self, key):
@@ -74,3 +85,6 @@ class Keys:
 
     def setmode(self, mode):
         self.mode = mode
+
+    def set_count(self, key):
+        self.count = int(str(self.count) + key)

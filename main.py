@@ -114,6 +114,9 @@ def bind_array(keys, mode, cmds, buf):
         for name, method in members:
             if name == cmd[1]:
                 keys.bind(mode, cmd[0], method)
+                break
+        else:
+            raise Exception('method {} does not exist'.format(cmd[1]))
 
 
 def main(stdscr, argv):
