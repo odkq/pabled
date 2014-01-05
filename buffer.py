@@ -22,6 +22,7 @@ import re
 from vy import (Ex, StatusLine, Cursor, Viewport, Line, Highlighter, Char,
                 insert_element, delete_element)
 
+
 class Buffer(Ex, StatusLine):
     COMMAND = 0
     INSERT = 1
@@ -330,10 +331,10 @@ class Buffer(Ex, StatusLine):
                 self.cursor.y = i
                 self.cursor_and_viewport_adjustement()
                 return
-        self.display.print_in_statusline(0, '-- Not found --', 20)
+        message = '-- {} Not found --'.format(pattern)
+        self.display.print_in_statusline(0, message, 40)
 
     def find(self, index, x, pattern=None):
-        ''' Return an array of matches on the line'''
         if pattern is None:
             if self.reprog is None:
                 return None, None
@@ -356,3 +357,28 @@ class Buffer(Ex, StatusLine):
 
     def error(self, key):
         pass
+
+    def visual(self, key):
+        ''' Enter visual mode selection. This just sets marks '< and '>
+            any deletion or insertion command uttered while in visual
+            mode refers implicitily to the lines addressed '''
+        pass
+
+    def delete_line(self, key):
+        ''' delete the line the cursor is in '''
+        del self.lines[self.cursor.y]
+        self.cursor_and_viewport_adjustement()
+        self.move_to_first_non_blank(key)
+
+    def move_to_first_non_blank(self, key):
+        ''' Move to the first non-blank character on line (^) '''
+        line = self.current_line()
+        for n in range(len(line)):
+            char = line[n]
+            if char.ch != u' ' and char.ch != u'\t':
+                mx = n
+                break
+        else:
+            mx = len(line)
+        self.cursor.x = mx
+        self.cursor.max = mx

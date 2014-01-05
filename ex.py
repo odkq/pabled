@@ -84,14 +84,13 @@ class Commands:
             if line_replaced:
                 lines_replaced += 1
         s = '{} replacements in {} lines'.format(replacements, lines_replaced)
-        self.display.print_in_statusline(0, s, len(s)) 
+        self.display.print_in_statusline(0, s, len(s))
         # Move cursor to the start of the last replacement
         if last_cursor[0] != -1:
             self.cursor.x = last_cursor[0]
             self.cursor.y = last_cursor[1]
             self.cursor_and_viewport_adjustement()
         # start, end = find(self, index, x, pattern=None):
-        # raise Exception('substitute [' + str(array) + '|' + str(kwargs) + ']')
 
     def quit(self, args, **kwargs):
         sys.exit(0)
@@ -130,7 +129,10 @@ class Ex(Commands):
         if (int(rang[0]) <= 0):
             return
         rang[0] = int(rang[0]) - 1
-        rang[1] = int(rang[1])
+        if len(rang) == 1:
+            rang.append(rang[0] + 1)
+        else:
+            rang[1] = int(rang[1])
         return s, rang  # 's/foo/bar/' [10, 20]
 
     def ex(self, line):

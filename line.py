@@ -28,6 +28,7 @@ def insert_element(array, position, element):
         i -= 1
     array[position] = element
 
+
 def delete_element(array, position):
     l = len(array) - 1
     if l == 0:      # Only the last '\n'
@@ -151,11 +152,11 @@ class Line:
                 del self.chars[delindex]
             except:
                 s, i = self.get_string_and_refs(refs, 0)
-                message = '{}:{} -> {} in \'{}\' index {}'
-                raise Exception(message.format(start, end, string, s, delindex))
-        for insertindex in range(start, start + len(string)):
-            c = string[insertindex - start]
-            insert_element(self, insertindex, Char(unicode(c), curses.A_NORMAL))
+                msg = '{}:{} -> {} in \'{}\' index {}'
+                raise Exception(msg.format(start, end, string, s, delindex))
+        for insertidx in range(start, start + len(string)):
+            c = string[insertidx - start]
+            insert_element(self, insertidx, Char(unicode(c), curses.A_NORMAL))
 
     def split(self, position):
         ''' Return a new line from position to the end '''

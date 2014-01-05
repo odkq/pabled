@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
- keys - ncurses key array handler
+ keys - keys to commands array handler
 
  Copyright (C) 2012, 2013 Pablo Martin <pablo@odkq.com>
 
@@ -26,6 +26,7 @@ class Keys:
     def __init__(self):
         self.methods = {}
         self.default = {}
+        self.multi = None  # When in a multikey command, the string so far
         self.methods[Buffer.COMMAND] = {}
         self.methods[Buffer.INSERT] = {}
         self.methods[Buffer.STATUS] = {}
@@ -39,8 +40,11 @@ class Keys:
             for m in mode:
                 self.bind(m, key, method)
             return
-        if type(key) == str:
-            key = ord(key)
+        if type(key) in (str, unicode):
+            if len(key) > 1:
+                if mode != Buffer.COMMAND:
+                    raise Exception('Multikeys are only allowed on COMMAND')
+                self.methods[mode][key[0]] = self.process_multi
         if key is None:
             self.default[mode] = method
         else:
@@ -52,6 +56,21 @@ class Keys:
         except KeyError:
             method = self.default[mode]
         method(key)
+
+    def process_multi(self, key):
+        if self.multi is None:
+            self.multi = key
+        else:
+            self.multi += key
+            # Check wether the whole string forms a command
+            # or not
+            try:
+                method = self.methods[Buffer.COMMAND][self.multi]
+            except KeyError:
+                # Send an escape to reset whatever needs to be reset
+                method = self.methods[Buffer.COMMAND][27]
+            self.multi = None
+            method(key)
 
     def setmode(self, mode):
         self.mode = mode

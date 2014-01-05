@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
- vy - a small vi clone
+ vy - a small vi-lish editor
 
  Copyright (C) 2012, 2013 Pablo Martin <pablo@odkq.com>
 
@@ -63,6 +63,8 @@ def set_command_mode_keys(keys, buf):
         [[u'?'], 'status'],
         [[u':'], 'status'],
         [[u'N'], 'repeat_find_backward'],
+        [[u'V'], 'visual'],
+        [[u'dd'], 'delete_line'],
         [None, 'error']
     ]
     bind_array(keys, Buffer.COMMAND, cmds, buf)
