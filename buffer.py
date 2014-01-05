@@ -73,6 +73,9 @@ class Buffer(Ex, StatusLine):
             restore position to cursor.max if after moving to
             the new line it fits
         """
+        # If we are beyond the last line, move to the last line
+        if c.cursor.y > (len(c.lines) - 1):
+            c.cursor.y = len(c.lines) - 1
         li = c.current_line().last_index(c.mode)
         if li == -1:
             c.cursor.x = 0
