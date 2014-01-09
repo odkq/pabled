@@ -18,7 +18,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from vy.buffer import Buffer
+from hellfire.buffer import Buffer
 
 
 class Keys:

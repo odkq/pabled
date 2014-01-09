@@ -22,7 +22,7 @@ import curses
 import locale
 import sys
 
-from vy import Buffer, Display, Keys
+from hellfire import Buffer, Display, Keys
 
 
 class Vy:
@@ -145,7 +145,7 @@ def main(stdscr, argv):
 # Entry point in setup.py for the /usr/bin/vy script
 def main_curses():
     if len(sys.argv) < 2:
-        print ('Usage: vy <file>')
+        print ('Usage: hf <file>')
         sys.exit(0)
 
     locale.setlocale(locale.LC_ALL, "")

@@ -18,7 +18,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import curses
-from vy.line import Line
+from hellfire.line import Line
 
 
 class Display:

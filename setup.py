@@ -24,24 +24,24 @@ if __name__ == '__main__':
                         os.remove(filepath)
         # if os.path.exists('web/mxcjobman.js'):
         #    os.remove('web/mxcjobman.js')
-        for d in ['vy.egg-info', 'build', 'dist', 'deb_dist']:
+        for d in ['hellfire.egg-info', 'build', 'dist', 'deb_dist']:
             subprocess.call(['sudo', 'rm', '-fR', d])
     else:
         setup(
-            name='vy',
+            name='hellfire',
             version='0.0.1',
-            description="A small vi clone with fancy features",
+            description="A small text editor with fancy features",
             author="Pablo Martin Medrano",
             author_email="pablo@odkq.com",
-            package_dir={'vy': '.'},
-            packages=['vy'],
+            package_dir={'hellfire': '.'},
+            packages=['hellfire'],
             entry_points={
                 'console_scripts': {
-                    'vy = vy.main:main_curses'
+                    'hf = hellfire.main:main_curses'
                 }
             },
-            url="https://github.com/odkq/vy",
+            url="https://github.com/odkq/hellfire",
             license="GPL v3",
             long_description=open('README.rst').read(),
-            data_files=[("/usr/share/doc/vy", ["README.rst"])],
+            data_files=[("/usr/share/doc/hellfire", ["README.rst"])],
             classifiers=classifiers)

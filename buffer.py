@@ -19,11 +19,11 @@
 """
 import curses
 import re
-from vy import (Ex, StatusLine, Cursor, Viewport, Line, Highlighter, Char,
-                insert_element, delete_element)
+from hellfire import (Ex, StatusLine, Cursor, Viewport, Line, Highlighter,
+                      Char, Visual, insert_element, delete_element)
 
 
-class Buffer(Ex, StatusLine):
+class Buffer(Ex, StatusLine, Visual):
     COMMAND = 0
     INSERT = 1
     STATUS = 2

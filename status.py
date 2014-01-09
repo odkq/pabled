@@ -18,7 +18,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import curses
-from vy import Char, insert_element, delete_element
+from hellfire import Char, insert_element, delete_element
 
 
 class StatusLine:
