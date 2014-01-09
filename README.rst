@@ -1,7 +1,7 @@
-vy
-==
+hellfire
+========
 
-A small vi-alike editor written in Python
+A small text editor written in Python
 
 Featuring:
  - Full UTF-8 support
