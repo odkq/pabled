@@ -87,4 +87,7 @@ class Keys:
         self.mode = mode
 
     def set_count(self, key):
-        self.count = int(str(self.count) + key)
+        if self.count == 0 and key == u'0':
+            self.cursor_to_bol(key)
+        else:
+            self.count = int(str(self.count) + key)

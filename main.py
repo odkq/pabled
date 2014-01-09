@@ -51,7 +51,7 @@ def set_command_mode_keys(keys, buf):
         [[curses.KEY_NPAGE, 6], 'page_forward'],
         [[curses.KEY_PPAGE, 2], 'page_backwards'],
         [[u'$', 70], 'cursor_to_eol'],
-        [[u'0', 72], 'cursor_to_bol'],
+        [[72], 'cursor_to_bol'],  # 0 is handled by the set_count callback
         [[u'i'], 'insert'],
         [[u'x'], 'delete_char_at_cursor'],
         [[u'X'], 'delete_char_before_cursor'],
