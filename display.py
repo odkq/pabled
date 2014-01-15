@@ -28,7 +28,7 @@ class Display:
         self.my, self.mx = self.stdscr.getmaxyx()
         self.status = Line(u' ' * (self.mx))
 
-    def update_line(self, y, line):
+    def update_line(self, y, line, buffer=None):
         # If it is the last line, do not write in the last cell
         if y == (self.my - 1):
             r = self.mx - 1
@@ -37,7 +37,10 @@ class Display:
         for i in range(r):
             if i < (len(line) - 1):
                 a = line[i].attr
-                ch = line[i].ch
+                if self.in_visual_range(self, y, r):
+                    ch = curses.A_INVERSE
+                else:
+                    ch = line[i].ch
             else:
                 ch = u' '
                 a = curses.A_NORMAL
@@ -50,7 +53,7 @@ class Display:
         """ Refresh display after a motion command """
         for y in range(0, self.my - 1):
             n = y + buf.viewport.y0
-            self.update_line(y, buf[n])
+            self.update_line(y, buf[n], buf)
         self.update_line(self.my - 1, self.status)
         if buf.mode != buf.STATUS:
             rx = buf.cursor.x - buf.viewport.x0
