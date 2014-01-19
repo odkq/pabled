@@ -29,7 +29,9 @@ class Buffer(Ex, StatusLine, Visual):
     STATUS = 2
     """ Loaded file with associated c and viewport positions """
     def __init__(self, x1, y1, display):
+        # Call inherited from classes one by one ...
         Ex.__init__(self)
+        Visual.__init__(self)
         self.lines = []
         self.cursor = Cursor()
         self.viewport = Viewport(x1, y1)
@@ -367,7 +369,7 @@ class Buffer(Ex, StatusLine, Visual):
         ''' Enter visual mode selection. This just sets marks '< and '>
             any deletion or insertion command uttered while in visual
             mode refers implicitily to the lines addressed '''
-        pass
+        self.set_visual()
 
     def delete_line(self, key):
         ''' delete the line the cursor is in '''

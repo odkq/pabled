@@ -175,10 +175,15 @@ class Line:
 
 
 class Cursor:
-    def __init__(self):
-        self.x = 0
-        self.y = 0
-        self.max = 0
+    def __init__(self, copy=None):
+        if copy:
+            self.x = copy.x
+            self.y = copy.y
+            self.max = copy.max
+        else:
+            self.x = 0
+            self.y = 0
+            self.max = 0
 
 
 class Viewport:

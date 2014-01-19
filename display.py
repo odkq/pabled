@@ -28,7 +28,7 @@ class Display:
         self.my, self.mx = self.stdscr.getmaxyx()
         self.status = Line(u' ' * (self.mx))
 
-    def update_line(self, y, line, buffer=None):
+    def update_line(self, y, line, buf=None):
         # If it is the last line, do not write in the last cell
         if y == (self.my - 1):
             r = self.mx - 1
@@ -36,11 +36,13 @@ class Display:
             r = self.mx
         for i in range(r):
             if i < (len(line) - 1):
-                a = line[i].attr
-                if self.in_visual_range(self, y, r):
-                    ch = curses.A_INVERSE
+                if (buf is not None and
+                    buf.in_visual_range(y + buf.viewport.y0,
+                                        i + buf.viewport.x0)):
+                    a = curses.A_REVERSE
                 else:
-                    ch = line[i].ch
+                    a = line[i].attr
+                ch = line[i].ch
             else:
                 ch = u' '
                 a = curses.A_NORMAL

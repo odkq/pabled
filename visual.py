@@ -17,10 +17,8 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-#import curses
-#import re
-#from hellfire import (Ex, StatusLine, Cursor, Viewport, Line, Highlighter,
-#                      Char, insert_element, delete_element)
+from hellfire import Cursor
+
 
 class Visual:
     def __init__(self):
@@ -28,33 +26,45 @@ class Visual:
 
     def in_visual_range(self, line, column):
         ''' Return wether we are in the visual range or not '''
-        if self.visual_cursor == None:
+        if self.visual_cursor is None:
             return False
         start_y = min(self.cursor.y, self.visual_cursor.y)
         end_y = max(self.cursor.y, self.visual_cursor.y)
         start_x = min(self.cursor.x, self.visual_cursor.x)
-        end_x = min(self.cursor.x, self.visual_cursor.x)
+        end_x = max(self.cursor.x, self.visual_cursor.x)
         if line not in range(start_y, end_y + 1):
             return False
+        if self.visual_cursor_line:
+            return True     # No more comparisons on V selection
+        s = 'start_y {} end_y {} start_x {} end_x {}'
+        s = s.format(start_y, end_y, start_x, end_x)
+        self.display.print_in_statusline(0, s, 60)
         if self.cursor.y == self.visual_cursor.y:
             if self.cursor.x == self.visual_cursor.x:
                 return False
             if column not in range(start_x, end_x + 1):
                 return False
             return True
-        if line == self.visual_cursor.y or line == self.cursor.y:
-            if self.cursor.y > self.visual.cursor.y:
-                if column > self.visual_cursor.x:
-                    return True
-            elif self.cursor.y < self.visual.cursor.y:
-                if column < self.visual_cursor.x:
-                    return True
-            return False
+        if line == self.visual_cursor.y:
+            if self.cursor.y > self.visual_cursor.y:
+                return column > self.visual_cursor.x
+            else:
+                return column < self.visual_cursor.x
+        elif line == self.cursor.y:
+            if self.cursor.y > self.visual_cursor.y:
+                return column < self.cursor.x
+            elif self.cursor.y < self.visual_cursor.y:
+                return column > self.cursor.x
         return True
 
-    def set_visual(self):
-        if self.visual_cursor == None:
-            self.visual_cursor = self.cursor
+    def set_visual(self, per_lines=True):
+        if self.visual_cursor is None:
+            self.visual_cursor = Cursor(self.cursor)
+            if per_lines:
+                self.visual_cursor.x = 0
+                self.visual_cursor_line = True
+            else:
+                self.visual_cursor_line = False
         else:
             self.visual_cursor = None
 
@@ -64,4 +74,3 @@ class Visual:
 
     def get_range(self):
         pass
-
