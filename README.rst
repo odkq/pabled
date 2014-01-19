@@ -17,7 +17,7 @@ Requires Python 2.7, setuptools and pygments. To install on Debian Wheezy:
 
 Installation
 ------------
-Install system-wide, with executable in /usr/bin/vy:
+Install system-wide, with executable in /usr/bin/hellfire:
 
         sudo python ./setup.py install
 
