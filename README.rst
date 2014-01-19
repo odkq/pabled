@@ -1,12 +1,11 @@
 hellfire
 ========
 
-A small text editor written in Python
+A small ncurses based console text editor with vi keybindings written in Python
 
 Featuring:
  - Full UTF-8 support
  - Syntax highlighting using pygments
- - Multiple files are opened contiguously
 
 Requirements
 ------------
@@ -33,4 +32,16 @@ Command mode:
   - a, i
  - Deletion:
   - x, X, Supr, Backspace, J
+ - Visual line selection:
+
+Insert mode:
+
+ - Motion commands
+  - cursor keys, Home, End, Avpag
+
+Ex (:) mode:
+ - Substitution
+  - s[ubstitute], using python regular expressions
+ - Writing
+  - w[rite] [file]
 
