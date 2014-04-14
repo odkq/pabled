@@ -8,6 +8,9 @@ Featuring:
  - Syntax highlighting using pygments
  - A cool game (2048)
 
+
+![screenshot](http://i.imgur.com/pN5hnAO.png)
+
 Requirements
 ------------
 
