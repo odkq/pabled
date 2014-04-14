@@ -7,9 +7,11 @@ Featuring:
  - Full UTF-8 support
  - Syntax highlighting using pygments
  - A cool game (2048)
+ - Hellfire!!
 
+![2048](http://i.imgur.com/pN5hnAO.png)
 
-![screenshot](http://i.imgur.com/pN5hnAO.png)
+![hellfire](http://i.imgur.com/JfvlU7n.png)
 
 Requirements
 ------------

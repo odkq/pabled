@@ -27,6 +27,13 @@ class Display:
         self.stdscr = stdscr
         self.my, self.mx = self.stdscr.getmaxyx()
         self.status = Line(u' ' * (self.mx))
+        # This is to redraw a snapshot() for fast overly animations
+        # (for hellfire :)
+        self.canvas = []
+        for y in range(self.my):
+            self.canvas.append([])
+            for x in range(self.mx):
+                self.canvas[y].append({'str': ' ', 'attr': curses.A_NORMAL})
 
     def update_line(self, y, line, buf=None):
         # If it is the last line, do not write in the last cell
@@ -47,9 +54,22 @@ class Display:
                 ch = u' '
                 a = curses.A_NORMAL
             if type(ch) == unicode:
-                self.stdscr.addstr(y, i, ch.encode('utf-8'), a)
+                ch = ch.encode('utf-8')
             elif type(ch) == str:
-                self.stdscr.addstr(y, i, ch, a)
+                pass
+            self.canvas[y][i]['str'] = ch
+            self.canvas[y][i]['attr'] = a
+            self.stdscr.addstr(y, i, ch, a)
+
+    def refresh(self):
+        """ Refresh display using last canvas stored """
+        for y in range(self.my):
+            for x in range(self.mx):
+                if (y == (self.my - 1)) and (x == (self.mx - 1)):
+                    pass
+                else:
+                    self.stdscr.addstr(y, x, self.canvas[y][x]['str'],
+                                       self.canvas[y][x]['attr'])
 
     def show(self, buf):
         """ Refresh display after a motion command """
@@ -90,6 +110,7 @@ class Display:
 
     def getmaxyx(self):
         return self.my, self.mx
+
 
 # Workaround for win.getch
 # https://groups.google.com/forum/#!topic/comp.lang.python/Z9zjDwonQqY

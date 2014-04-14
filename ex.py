@@ -18,6 +18,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import curses
+import random
 import shlex
 import sys
 import re
@@ -135,7 +136,8 @@ class Commands:
             mpad.addstr(height + 1, width + 1, '╯')
 
             # mpad.refresh()
-            mpad.refresh(0, 0, sminrow - 1, smincol - 1, smaxrow + 1, smaxcol + 1)
+            mpad.refresh(0, 0, sminrow - 1, smincol - 1, smaxrow + 1,
+                         smaxcol + 1)
 
         return pad, sminrow, smincol, smaxrow, smaxcol
 
@@ -145,20 +147,43 @@ class Commands:
         self.display.show(self)
         return
 
-        #  These loops fill the pad with letters; this is
-        # explained in the next section
-        for y in range(0, 25):
-            for x in range(0, 80):
-                try:
-                    pad.addch(y, x, ord('a') + (x*x+y*y) % 26)
-                except curses.error:
-                    pass
+    def hellfire(self, args, **kwargs):
+        ''' Show hellfire!!
+            Ripped from msimpson's
+            https://gist.github.com/msimpson/1096950 '''
+        screen = self.display.stdscr
+        height, width = self.display.getmaxyx()
+        height = height - 1 # Preserve statusline
+        size = width * height
+        char = [" ", ".", ":", "^", "*", "x", "s", "S", "#", "$"]
+        b = []
 
-        #  Displays a section of the pad in the middle of the screen
-        pad.refresh(0, 0, 0, 0, 24, 79)
-        pad.refresh()
-        pad.getch()
-        # self.display.getkey()
+        curses.init_pair(41, 0, 0)
+        curses.init_pair(42, 1, 0)
+        curses.init_pair(43, 3, 0)
+        curses.init_pair(44, 4, 0)
+        # screen.clear
+        for i in range(size+width+1):
+            b.append(0)
+        while 1:
+            self.display.refresh()
+            for i in range(int(width/9)):
+                b[int((random.random() * width) + width * (height - 1))] = 65
+            for i in range(size):
+                    b[i] = int((b[i] + b[i+1] + b[i + width] +
+                                b[i + width + 1])/4)
+                    color = (4 if b[i] > 15 else (3 if b[i] > 9 else
+                                                 (2 if b[i] > 4 else 1)))
+                    if(i < size - 1):
+                        c = char[(9 if b[i] > 9 else b[i])]
+                        attr = curses.color_pair(color + 40) | curses.A_BOLD
+                        if c != ' ':
+                            screen.addstr(int(i / width), i % width,
+                                          c, attr)
+            screen.refresh()
+            screen.timeout(30)
+            if (screen.getch() != -1):
+                break
 
 
 class Ex(Commands):
