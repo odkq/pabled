@@ -101,25 +101,46 @@ class Commands:
     def get_candidates(self, pattern):
         return [c for c in self.commands if c[:len(pattern)] == pattern]
 
-    def game2048(self, args, **kwargs):
-        pad = curses.newpad(25, 80)
+    def get_centered_pad(self, width, height):
+        pad = curses.newpad(height, width)
         maxy, maxx = self.display.getmaxyx()
-        if maxx < 80 or maxy < 25:
+        if maxx < width or maxy < height:
             return
-        if maxx == 80:
+        if (maxx < (width + 2)) or (maxy < (height + 2)):
             sminrow = 0
             smincol = 0
-            smaxrow = 24
-            smaxcol = 79
-        elif maxx > 82:
-            #sminrow = 0
-            #smincol = 0
-            #smaxrow = 24
-            #smaxcol = 79
+            smaxrow = height - 1
+            smaxcol = width - 1
+        else:
             sminrow = (maxy / 2) - 12
             smincol = (maxx / 2) - 40
-            smaxrow = 24 + sminrow
-            smaxcol = 79 + smincol
+            smaxrow = (height - 1) + sminrow
+            smaxcol = (width - 1) + smincol
+            mpad = curses.newpad(height + 3, width + 2)
+            for x in range(width + 1):
+                mpad.addstr(0, x, '─')
+                try:
+                    mpad.addstr(height + 1, x, '─')
+                except:
+                    raise Exception('x {} height {}'.format(x, height))
+            for y in range(height + 1):
+                mpad.addstr(y, 0, '│')
+                try:
+                    mpad.addstr(y, width + 1, '│')
+                except:
+                    raise Exception('y {} width {}'.format(y, width))
+            mpad.addstr(0, 0, '╭')
+            mpad.addstr(height + 1, 0, '╰')
+            mpad.addstr(0, width + 1, '╮')
+            mpad.addstr(height + 1, width + 1, '╯')
+
+            # mpad.refresh()
+            mpad.refresh(0, 0, sminrow - 1, smincol - 1, smaxrow + 1, smaxcol + 1)
+
+        return pad, sminrow, smincol, smaxrow, smaxcol
+
+    def game2048(self, args, **kwargs):
+        pad, sminrow, smincol, smaxrow, smaxcol = self.get_centered_pad(80, 23)
         game_2048(pad, False, True, sminrow, smincol, smaxrow, smaxcol)
         self.display.show(self)
         return

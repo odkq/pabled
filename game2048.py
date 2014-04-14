@@ -78,7 +78,7 @@ class Board:
                 else:
                     self.screen.addstr(y + dy, x + dx, ' ', attr)
 
-    def draw_tile(self, x, y, value):
+    def draw_tile(self, x, y, value, marginy=False, marginx=False):
         ''' Draw a whole tile by drawing it's four (padded with ' 's)
             characters '''
         attr = self.attribs[self._get_color_pair(value)]
@@ -94,10 +94,12 @@ class Board:
             pass
         # draw the black margin (to erase anything drawn by a modal window)
         pattr = self.attribs[self._get_color_pair(0)]
-        for dy in range(y - 1, y + 5):
-            self.screen.addstr(dy, x - 1, ' ', pattr)
-        for dx in range(x - 1, x + 17):
-            self.screen.addstr(y - 1, dx, ' ', pattr)
+        if marginx:
+            for dy in range(y - 0, y + 5):
+                self.screen.addstr(dy, x - 1, ' ', pattr)
+        if marginy:
+            for dx in range(x - 0, x + 18):
+                self.screen.addstr(y - 1, dx, ' ', pattr)
 
     def draw(self):
         ''' Draw all the tiles in the board and print the score '''
@@ -106,9 +108,9 @@ class Board:
             for x in range(4):
                 value = self.board[y][x]
                 score += value
-                px = (x * 18) + 1
-                py = (y * 6) + 1
-                self.draw_tile(px, py, value)
+                px = (x * 18) + 0
+                py = (y * 6) + 0
+                self.draw_tile(px, py, value, y in [1, 2, 3], x > 0)
         self.screen.addstr(4, 73, str(score).center(6))
         self.padrefresh()
 
@@ -259,14 +261,17 @@ class Board:
         key = None
         lines = text.split('\n')
         maxlength = max([len(x) for x in lines])
-        frame = '+' + ('-' * (maxlength + 2)) + '+'
+        # frame = '+' + ('-' * (maxlength + 2)) + '+'
+        frame = '╭' + ('─' * (maxlength + 2)) + '╮'
         sx = 40 - ((maxlength + 4) / 2)
-        sy = 12 - (len(lines) / 2)
+        sy = 10 - (len(lines) / 2)
         self.screen.addstr(sy, sx, frame)
         for line in lines:
             sy += 1
-            s = '| ' + line.ljust(maxlength) + ' |'
+            # s = '| ' + line.ljust(maxlength) + ' |'
+            s = '│ ' + line.ljust(maxlength) + ' │'
             self.screen.addstr(sy, sx, s)
+        frame = '╰' + ('─' * (maxlength + 2)) + '╯'
         self.screen.addstr(sy + 1, sx, frame)
         self.padrefresh()
         while True:
