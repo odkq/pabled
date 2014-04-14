@@ -185,6 +185,14 @@ class Cursor:
             self.y = 0
             self.max = 0
 
+class Marks:
+    def __init__(self):
+        self.mark = {}
+        for char in [chr(x + ord('a')) for x in range(26)]:
+            self.mark[char] = Cursor()
+    def set_mark(self, letter, x, y):
+        self.mark[letter].x = x
+        self.mark[letter].y = x
 
 class Viewport:
     def __init__(self, x1, y1):

@@ -17,9 +17,12 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import curses
 import shlex
 import sys
 import re
+
+from hellfire import game_2048
 
 
 class Commands:
@@ -97,6 +100,44 @@ class Commands:
 
     def get_candidates(self, pattern):
         return [c for c in self.commands if c[:len(pattern)] == pattern]
+
+    def game2048(self, args, **kwargs):
+        pad = curses.newpad(25, 80)
+        maxy, maxx = self.display.getmaxyx()
+        if maxx < 80 or maxy < 25:
+            return
+        if maxx == 80:
+            sminrow = 0
+            smincol = 0
+            smaxrow = 24
+            smaxcol = 79
+        elif maxx > 82:
+            #sminrow = 0
+            #smincol = 0
+            #smaxrow = 24
+            #smaxcol = 79
+            sminrow = (maxy / 2) - 12
+            smincol = (maxx / 2) - 40
+            smaxrow = 24 + sminrow
+            smaxcol = 79 + smincol
+        game_2048(pad, False, True, sminrow, smincol, smaxrow, smaxcol)
+        self.display.show(self)
+        return
+
+        #  These loops fill the pad with letters; this is
+        # explained in the next section
+        for y in range(0, 25):
+            for x in range(0, 80):
+                try:
+                    pad.addch(y, x, ord('a') + (x*x+y*y) % 26)
+                except curses.error:
+                    pass
+
+        #  Displays a section of the pad in the middle of the screen
+        pad.refresh(0, 0, 0, 0, 24, 79)
+        pad.refresh()
+        pad.getch()
+        # self.display.getkey()
 
 
 class Ex(Commands):

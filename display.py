@@ -88,6 +88,8 @@ class Display:
     def getmaxy(self):
         return self.my
 
+    def getmaxyx(self):
+        return self.my, self.mx
 
 # Workaround for win.getch
 # https://groups.google.com/forum/#!topic/comp.lang.python/Z9zjDwonQqY

@@ -6,6 +6,7 @@ A small ncurses based console text editor with vi keybindings written in Python
 Featuring:
  - Full UTF-8 support
  - Syntax highlighting using pygments
+ - A cool game (2048)
 
 Requirements
 ------------
@@ -33,6 +34,7 @@ Command mode:
  - Deletion:
   - x, X, Supr, Backspace, J
  - Visual line selection:
+  - V (start selection/end selection)
 
 Insert mode:
 
@@ -44,4 +46,7 @@ Ex (:) mode:
   - s[ubstitute], using python regular expressions
  - Writing
   - w[rite] [file]
+
+Games:
+ - Type :game2048 (or just :g) to play the popular game
 

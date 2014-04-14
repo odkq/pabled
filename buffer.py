@@ -43,6 +43,7 @@ class Buffer(Ex, StatusLine, Visual):
         self.path = ''
 
         self.visualrange = None
+        self.display = display      # Currently associated
 
     def open(self, path):
         self.lines = []
@@ -208,7 +209,7 @@ class Buffer(Ex, StatusLine, Visual):
         self.cursor.x = 0
         self.cursor.max = 0
 
-    def refresh_status(self, display, ch):
+    def refresh_status(self, ch):
         if len(self.current_line()) <= 0:
             current_char = u' '
         else:
@@ -219,7 +220,7 @@ class Buffer(Ex, StatusLine, Visual):
                                             self.cursor.x,
                                             len(self.current_line()),
                                             current_char, ch)
-        display.print_in_statusline(-30, i, 30)
+        self.display.print_in_statusline(-30, i, 30)
 
     def insert(self, key):
         if self.mode == self.COMMAND:

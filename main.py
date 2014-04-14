@@ -125,7 +125,7 @@ def main(stdscr, argv):
     keys = Keys()
     vy = Vy(display)
     buf.open(argv[1])
-    buf.refresh_status(display, '@')
+    buf.refresh_status('@')
     vy.add_buffer(buf)
     vy.set_current(buf)
     set_command_mode_keys(keys, buf)
@@ -138,7 +138,7 @@ def main(stdscr, argv):
         key = display.getkey()
         keys.process(key, buf.mode)
         if buf.mode != buf.STATUS:
-            buf.refresh_status(display, key)
+            buf.refresh_status(key)
         display.show(buf)
 
 

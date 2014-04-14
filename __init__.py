@@ -1,5 +1,6 @@
 __all__ = ["buffer", "display", "statusline", "ex", "line", "highlight",
-           "keys"]
+           "keys", "game2048"]
+from .game2048 import game_2048  # noqa
 from .ex import Ex  # noqa
 from .line import (Cursor, Viewport, Line, Char, insert_element,  # noqa
                    delete_element)  # noqa
