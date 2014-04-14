@@ -9,7 +9,7 @@ Featuring:
  - A cool game (2048)
  - Hellfire!!
 
-![2048](http://i.imgur.com/pN5hnAO.png)
+![2048](http://i.imgur.com/qxjJXSn.png)
 
 ![hellfire](http://i.imgur.com/JfvlU7n.png)
 
