@@ -150,3 +150,6 @@ def main_curses():
 
     locale.setlocale(locale.LC_ALL, "")
     curses.wrapper(main, sys.argv)
+
+if __name__ == "__main__":
+    main_curses()

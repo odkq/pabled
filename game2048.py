@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
  2048.py - Minimal implementation of 2048 game with python/ncurses
            See http://gabrielecirulli.github.io/2048/ for the original
