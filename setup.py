@@ -37,11 +37,11 @@ if __name__ == '__main__':
             packages=['hellfire'],
             entry_points={
                 'console_scripts': {
-                    'hf = hellfire.main:main_curses'
+                    'hellfire = hellfire.main:main_curses'
                 }
             },
             url="https://github.com/odkq/hellfire",
             license="GPL v3",
-            long_description=open('README.rst').read(),
-            data_files=[("/usr/share/doc/hellfire", ["README.rst"])],
+            long_description=open('README.md').read(),
+            data_files=[("/usr/share/doc/hellfire", ["README.md"])],
             classifiers=classifiers)
