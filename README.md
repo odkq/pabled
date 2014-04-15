@@ -55,3 +55,5 @@ Ex (:) mode:
 Games:
  - Type :game2048 (or just :g) to play the popular game
 
+ - Yup, type :hellfire to become the god of hellfire!
+
