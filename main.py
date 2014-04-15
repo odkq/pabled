@@ -65,6 +65,7 @@ def set_command_mode_keys(keys, buf):
         [[u'N'], 'repeat_find_backward'],
         [[u'V'], 'visual'],
         [[u'dd'], 'delete_line'],
+        [[u'D'], 'delete'],
         [None, 'error']
     ]
     bind_array(keys, Buffer.COMMAND, cmds, buf)

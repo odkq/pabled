@@ -20,6 +20,16 @@
 from hellfire import Cursor
 
 
+class Marks:
+    def __init__(self):
+        self.mark = {}
+        for char in [chr(x + ord('a')) for x in range(26)]:
+            self.mark[char] = Cursor()
+    def set_mark(self, letter, x, y):
+        self.mark[letter].x = x
+        self.mark[letter].y = x
+
+
 class Visual:
     def __init__(self):
         self.visual_cursor = None
@@ -65,12 +75,15 @@ class Visual:
                 self.visual_cursor_line = True
             else:
                 self.visual_cursor_line = False
+            self.display.print_in_statusline(0, '-- visual --', 20)
         else:
+            self.display.print_in_statusline(0, '            ', 20)
             self.visual_cursor = None
 
     def set_visual_line(self):
         ''' Set visual in a cursor from the end of the current line'''
         pass
 
-    def get_range(self):
-        pass
+    def get_visual_range(self):
+        return (min(self.cursor.y, self.visual_cursor.y),
+                max(self.cursor.y, self.visual_cursor.y))

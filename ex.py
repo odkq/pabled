@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
  ex - Implementation of very few ex (: ) commands
 
@@ -48,6 +49,27 @@ class Commands:
                     f.write(char.ch.encode('utf-8'))
         f.close()
         self.display.print_in_statusline(0, '-- wrote ' + path + '--', 20)
+
+    # [range]d[elete]
+    def delete(self, args, **kwargs):
+        ''' delete the lines specified '''
+        if 'range' in kwargs:
+            first_line = kwargs['range'][0]
+            last_line = kwargs['range'][1]
+        else:   # Current line
+            # If there is a visual selection, use that range
+            if self.visual_cursor is not None:
+                first_line, last_line = self.get_visual_range()
+                last_line += 1  # Somehow this is needed
+                # Reset visual selection
+                self.set_visual()
+            else:
+                first_line = self.cursor.y
+                last_line = first_line + 1
+        for n in range(first_line, last_line):
+            del self.lines[first_line]
+        self.cursor_and_viewport_adjustement()
+        self.move_to_first_non_blank('d')
 
     # [range]s[ubstitute]/{pattern}/{string}/[flags] [count]
     def substitute(self, args, **kwargs):
@@ -207,6 +229,12 @@ class Ex(Commands):
         # Extract range [i.e] 10,20 in 10,20s/foo/bar/
         range_match = re.search('\d+?,\d*\d+?|%|\d+', s)
         if range_match is None:
+            # If there is a visual selection, use that range
+            if self.visual_cursor is not None:
+                rang0, rang1 = self.get_visual_range()
+                # Reset visual selection
+                self.set_visual()
+                return s, [rang0, rang1 + 1]
             return s, None
         rang = s[range_match.start():range_match.end()]
         s = s[range_match.end():]
