@@ -76,6 +76,8 @@ class StatusLine:
         pass
 
     def status_insert(self, key):
+        if key == -1:
+            return
         insert_element(self.display.status, self.sx,
                        Char(key, curses.A_NORMAL))
         self.status_right('@')
