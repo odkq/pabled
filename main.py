@@ -66,6 +66,8 @@ def set_command_mode_keys(keys, buf):
         [[u'V'], 'visual'],
         [[u'dd'], 'delete_line'],
         [[u'D'], 'delete'],
+        [[u'y'], 'yank'],
+        [[u'p'], 'paste'],
         [None, 'error']
     ]
     bind_array(keys, Buffer.COMMAND, cmds, buf)

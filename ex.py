@@ -33,8 +33,10 @@ class Commands:
         # out __init__() and get_candidates()
         c = [d for d in dir(Commands) if hasattr(Commands.__dict__[d],
                                                  '__call__')]
-        c = [d for d in c if d not in ['__init__', 'get_candidates']]
+        c = [d for d in c if d not in ['__init__', 'get_candidates',
+                                       'get_range']]
         self.commands = c
+        self.yankring = []
 
     def write(self, args, **kwargs):
         a = args[0]
@@ -50,9 +52,7 @@ class Commands:
         f.close()
         self.display.print_in_statusline(0, '-- wrote ' + path + '--', 20)
 
-    # [range]d[elete]
-    def delete(self, args, **kwargs):
-        ''' delete the lines specified '''
+    def get_current_range(self, args, **kwargs):
         if 'range' in kwargs:
             first_line = kwargs['range'][0]
             last_line = kwargs['range'][1]
@@ -66,10 +66,35 @@ class Commands:
             else:
                 first_line = self.cursor.y
                 last_line = first_line + 1
+        return first_line, last_line
+
+    # [range]d[elete]
+    def delete(self, args, **kwargs):
+        ''' delete the lines specified '''
+        first_line, last_line = self.get_current_range(kwargs)
         for n in range(first_line, last_line):
             del self.lines[first_line]
         self.cursor_and_viewport_adjustement()
         self.move_to_first_non_blank('d')
+
+    # [range]y[yank]
+    def yank(self, args, **kwargs):
+        ''' delete the lines specified '''
+        first_line, last_line = self.get_current_range(kwargs)
+        if len(self.yankring) != 0:
+            self.yankring = []
+        for n in range(first_line, last_line):
+            self.yankring.append(self.lines[first_line])
+        #self.cursor_and_viewport_adjustement()
+        #self.move_to_first_non_blank('d')
+
+    # [range]p[aste]
+    def paste(self, args, **kwargs):
+        ''' Paste can not make use of any range, but whatever '''
+        for line in self.yankring:
+            self.enter(u'\n')
+            for ch in line:
+                self.insert_char(ch)
 
     # [range]s[ubstitute]/{pattern}/{string}/[flags] [count]
     def substitute(self, args, **kwargs):
