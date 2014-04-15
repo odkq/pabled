@@ -84,17 +84,23 @@ class Commands:
         if len(self.yankring) != 0:
             self.yankring = []
         for n in range(first_line, last_line):
-            self.yankring.append(self.lines[first_line])
+            self.yankring.append(self.lines[n])
+        nyanked = len(self.yankring)
+        s = 'yanked {} lines'.format(nyanked)
+        self.display.print_in_statusline(0, s, len(s))
         #self.cursor_and_viewport_adjustement()
         #self.move_to_first_non_blank('d')
 
     # [range]p[aste]
     def paste(self, args, **kwargs):
         ''' Paste can not make use of any range, but whatever '''
-        for line in self.yankring:
-            self.enter(u'\n')
-            for ch in line:
-                self.insert_char(ch)
+        y = self.cursor.y
+        self.lines = (self.lines[:(y + 1)] + self.yankring +
+                      self.lines[(y + 1):])
+        npasted = len(self.yankring)
+        self.cursor.y += npasted
+        s = 'pasted {} lines'.format(npasted)
+        self.display.print_in_statusline(0, s, len(s))
 
     # [range]s[ubstitute]/{pattern}/{string}/[flags] [count]
     def substitute(self, args, **kwargs):
@@ -200,7 +206,7 @@ class Commands:
             https://gist.github.com/msimpson/1096950 '''
         screen = self.display.stdscr
         height, width = self.display.getmaxyx()
-        height = height - 1 # Preserve statusline
+        height = height - 1  # Preserve statusline
         size = width * height
         char = [" ", ".", ":", "^", "*", "x", "s", "S", "#", "$"]
         b = []
