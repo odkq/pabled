@@ -74,6 +74,8 @@ class Commands:
         first_line, last_line = self.get_current_range(kwargs)
         for n in range(first_line, last_line):
             del self.lines[first_line]
+            if self.cursor.y >= first_line:
+                self.cursor.y -= 1
         self.cursor_and_viewport_adjustement()
         self.move_to_first_non_blank('d')
 
