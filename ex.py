@@ -21,6 +21,7 @@
 import curses
 import random
 import shlex
+import copy
 import sys
 import re
 
@@ -104,7 +105,7 @@ class Commands:
     def paste(self, args, **kwargs):
         ''' Paste can not make use of any range, but whatever '''
         y = self.cursor.y
-        self.lines = (self.lines[:(y + 1)] + self.yankring +
+        self.lines = (self.lines[:(y + 1)] + copy.deepcopy(self.yankring) +
                       self.lines[(y + 1):])
         npasted = len(self.yankring)
         self.cursor.y += npasted
