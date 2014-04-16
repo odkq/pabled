@@ -56,6 +56,9 @@ class Buffer(Ex, StatusLine, Visual):
         self.high.scan(0, len(self.lines))
         self.path = path
 
+    def rescan(self):
+        self.high.scan(0, len(self.lines))
+
     def __getitem__(self, n):
         try:
             return self.lines[n]
@@ -245,6 +248,7 @@ class Buffer(Ex, StatusLine, Visual):
         insert_element(self.lines[self.cursor.y], index,
                        Char(key, curses.A_NORMAL))
         self.cursor_right('@')
+        self.rescan()
         self.cursor_and_viewport_adjustement()
 
     def delete_char_at_cursor(self, key):

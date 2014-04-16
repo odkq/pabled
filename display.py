@@ -34,7 +34,7 @@ class Display:
             self.canvas.append([])
             for x in range(self.mx):
                 self.canvas[y].append({'str': ' ', 'attr': curses.A_NORMAL})
-
+    
     def update_line(self, y, line, buf=None):
         # If it is the last line, do not write in the last cell
         if y == (self.my - 1):
@@ -60,6 +60,8 @@ class Display:
             self.canvas[y][i]['str'] = ch
             self.canvas[y][i]['attr'] = a
             self.stdscr.addstr(y, i, ch, a)
+        # Draw rule
+        self.stdscr.addstr(y, 80, '│', curses.A_NORMAL)
 
     def refresh(self):
         """ Refresh display using last canvas stored """
@@ -73,13 +75,17 @@ class Display:
 
     def show(self, buf):
         """ Refresh display after a motion command """
-        for y in range(0, self.my - 1):
+        for y in xrange(0, self.my - 1):
             n = y + buf.viewport.y0
             self.update_line(y, buf[n], buf)
         self.update_line(self.my - 1, self.status)
         if buf.mode != buf.STATUS:
             rx = buf.cursor.x - buf.viewport.x0
             ry = buf.cursor.y - buf.viewport.y0
+            if rx < 0:
+                rx = 0
+            if ry < 0:
+                ry = 0
             self.stdscr.move(ry, rx)
         else:
             self.stdscr.move(self.my - 1, buf.sx)
