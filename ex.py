@@ -72,10 +72,17 @@ class Commands:
     def delete(self, args, **kwargs):
         ''' delete the lines specified '''
         first_line, last_line = self.get_current_range(kwargs)
+        ndeleted = 0
+        if len(self.yankring) != 0:
+            self.yankring = []
         for n in range(first_line, last_line):
+            self.yankring.append(self.lines[first_line])
             del self.lines[first_line]
             if self.cursor.y >= first_line:
                 self.cursor.y -= 1
+            ndeleted += 1
+        s = 'deleted {} lines'.format(ndeleted)
+        self.display.print_in_statusline(0, s, len(s))
         self.cursor_and_viewport_adjustement()
         self.move_to_first_non_blank('d')
 
