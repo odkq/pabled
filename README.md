@@ -67,13 +67,15 @@ Ex (:) mode:
 Unsupported vi features
 -----------------------
 
+There is no horizontal scroll...
+
 You can not prefix a command with a repetition number (i.e. 10j)
 
 Delete to end of line or to end of world (d$, dw) is not implemented
 
 There is no undo (yet)
 
-dGames and other nuisances
+Games and other nuisances
 -------------------------
 
  - Type :game2048 (or just :g) to play the popular game
