@@ -61,7 +61,7 @@ class Display:
             self.canvas[y][i]['attr'] = a
             self.stdscr.addstr(y, i, ch, a)
         # Draw rule
-        self.stdscr.addstr(y, 80, '│', curses.A_NORMAL)
+        # self.stdscr.addstr(y, 80, '│', curses.A_NORMAL)
 
     def refresh(self):
         """ Refresh display using last canvas stored """
