@@ -292,6 +292,8 @@ class Ex(Commands):
         return s, rang  # 's/foo/bar/' [10, 20]
 
     def ex(self, line):
+        if line == '':
+            return
         s = shlex.split(line)
         rang, cmd, arg = self.get_range_cmd_arg(s[0])
         if arg is not None:
