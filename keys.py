@@ -56,6 +56,7 @@ class Keys:
             self.methods[mode][key] = method
 
     def process(self, key, mode):
+        ''' Process key '''
         try:
             method = self.methods[mode][key]
         except KeyError:
@@ -69,6 +70,7 @@ class Keys:
         method(key)
 
     def process_multi(self, key):
+        ''' Multikey continuation '''
         if self.multi is None:
             self.multi = key
         else:
@@ -84,6 +86,7 @@ class Keys:
             method(key)
 
     def setmode(self, mode):
+        ''' Change from command to edition mode and versavice '''
         self.mode = mode
 
     def set_count(self, key):
