@@ -49,6 +49,24 @@ Punctuation yellow black
 Comment cyan black
 Other red black"""
 
+schema256 = """Text 7 0
+Whitespace 0 7
+Error 200 1
+Keyword.Namespace 171 0
+Keyword 186 0
+Name.Class 205 0
+Name.Function 104 0
+Name.Exception 212 0
+Name.Builtin.Pseudo 210 0
+Name.Builtin 222 0
+Name 7 0
+Literal.String.Escape red black
+Literal red black
+String 38 0
+Number 41 0
+Punctuation 8 0 
+Comment 36 0
+Other red black"""
 
 class Highlighter:
     """ Fill the ncurses of the text using Pygments """
@@ -66,15 +84,26 @@ class Highlighter:
         self.__colors = {'black': 0, 'red': 1, 'green': 2,
                          'yellow': 3, 'blue': 4, 'magenta': 5,
                          'cyan': 6, 'white': 7}
-        # default color schema
-        self.setcolorschema(defcolschema)
+        # Set default color schema when only 8 colors are available
+        if curses.COLORS != 256:
+            self.setcolorschema(defcolschema)
+        # Set default schema for 256 colors
+        else:
+            self.setcolorschema(schema256)
 
     def setcolorschema(self, text):
         i = 1   # First color pair settable is 1, 0 is fixed to white on black
         for token in text.split('\n'):
             tk = token.split()
             c = pygments.token.string_to_tokentype('Token.' + tk[0])
-            curses.init_pair(i, self.__colors[tk[1]], self.__colors[tk[2]])
+            try:
+                curses.init_pair(i, self.__colors[tk[1]], self.__colors[tk[2]])
+            except KeyError:
+                try:
+                    curses.init_pair(i, int(tk[1]), int(tk[2]))
+                except:
+                    raise Exception('int(tk[1]) {} int(tk[2]) {}'.format(int(tk[1]),
+                                                                         int(tk[2])))
             self.token_colors[c] = {'color': curses.color_pair(i)}
             i += 1
 

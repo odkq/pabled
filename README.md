@@ -30,6 +30,11 @@ font that can display Unicode graphic characters. As a reference, i use
 'Bitstream Vera Sans Mono' in an xterm (xterm -fs 12 -fa 'Bitstream Vera Sans
 Mono')
 
+If you have a terminal that supports 256 colors, they will be used. But only
+if you set the $TERM environment variable correctly. I do
+export TERM=xterm-256color in xterm and TERM=screen-256color in tmux to get
+256 colors.
+
 Installation
 ------------
 Install system-wide, with executable in /usr/bin/hellfire:
