@@ -257,6 +257,8 @@ class Ex(Commands):
         self.history = []
 
     def get_range_cmd_arg(self, s):
+        ''' Return a triplet with range, command and arguments for the ex
+            command. I.E: '[10,20]', 's', '/foo/bar/' '''
         s, rang = self.get_range(s)
         delimiter = s.find('/')
         if delimiter == -1:
