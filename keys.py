@@ -37,6 +37,8 @@ class Keys:
             self.bind(Buffer.COMMAND, unicode(n), self.set_count)
 
     def bind(self, mode, key, method):
+        ''' Bind a key or a list of keys to a certain method, referenced
+            by name '''
         if type(key) in (tuple, list):
             for i in key:
                 self.bind(mode, i, method)
@@ -91,6 +93,6 @@ class Keys:
 
     def set_count(self, key):
         if self.count == 0 and key == u'0':
-            self.cursor_to_bol(key)
+            self.methods[Buffer.COMMAND]['0']
         else:
             self.count = int(str(self.count) + key)

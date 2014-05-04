@@ -52,7 +52,10 @@ class Display:
                 ch = line[i].ch
             else:
                 ch = u' '
-                a = curses.A_NORMAL
+                if (buf is not None) and (buf.high is not None):
+                    a = buf.high.default_attribute()
+                else:
+                    a = curses.A_NORMAL
             if type(ch) == unicode:
                 ch = ch.encode('utf-8')
             elif type(ch) == str:

@@ -49,27 +49,28 @@ Punctuation yellow black
 Comment cyan black
 Other red black"""
 
-schema256 = """Text 7 0
+schema256 = """Text 7 16
 Whitespace 0 7
 Error 200 1
-Keyword.Namespace 171 0
-Keyword 186 0
-Name.Class 205 0
-Name.Function 104 0
-Name.Exception 212 0
-Name.Builtin.Pseudo 210 0
-Name.Builtin 222 0
-Name 7 0
-Literal.String.Escape red black
-Literal red black
-String 38 0
-Number 41 0
-Punctuation 8 0 
-Comment 36 0
+Keyword.Namespace 171 16
+Keyword 186 16
+Name.Class 205 16
+Name.Function 104 16
+Name.Exception 212 16
+Name.Builtin.Pseudo 210 16
+Name.Builtin 222 16
+Name 7 16
+Literal.String.Escape 3 16
+Literal 3 16
+String 38 16
+Number 41 16
+Punctuation 8 16
+Operator 8 16
+Comment 36 16
 Other red black"""
 
 class Highlighter:
-    """ Fill the ncurses of the text using Pygments """
+    """ Fill the attributes of the text using Pygments """
     def __init__(self, buffer):
         self.b = buffer
         self.token_colors = {}
@@ -90,6 +91,10 @@ class Highlighter:
         # Set default schema for 256 colors
         else:
             self.setcolorschema(schema256)
+
+    def default_attribute(self):
+        c = pygments.token.string_to_tokentype('Token.Text')
+        return self.token_colors[c]['color']
 
     def setcolorschema(self, text):
         i = 1   # First color pair settable is 1, 0 is fixed to white on black
