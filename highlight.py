@@ -31,6 +31,7 @@ import curses
 # workaround that :>
 
 defcolschema = """Text white black
+Highlight white
 Whitespace black yellow
 Error white red
 Keyword.Namespace magenta black
@@ -50,6 +51,7 @@ Comment cyan black
 Other red black"""
 
 schema256 = """Text 7 16
+Highlight 235
 Whitespace 0 7
 Error 200 1
 Keyword.Namespace 171 16
@@ -68,6 +70,7 @@ Punctuation 8 16
 Operator 8 16
 Comment 36 16
 Other red black"""
+
 
 class Highlighter:
     """ Fill the attributes of the text using Pygments """
@@ -96,23 +99,49 @@ class Highlighter:
         c = pygments.token.string_to_tokentype('Token.Text')
         return self.token_colors[c]['color']
 
+    def highlight_background(self):
+        pass
+
     def setcolorschema(self, text):
         i = 1   # First color pair settable is 1, 0 is fixed to white on black
-        for token in text.split('\n'):
-            tk = token.split()
-            c = pygments.token.string_to_tokentype('Token.' + tk[0])
-            try:
-                curses.init_pair(i, self.__colors[tk[1]], self.__colors[tk[2]])
-            except KeyError:
-                try:
-                    curses.init_pair(i, int(tk[1]), int(tk[2]))
-                except:
-                    raise Exception('int(tk[1]) {} int(tk[2]) {}'.format(int(tk[1]),
-                                                                         int(tk[2])))
-            self.token_colors[c] = {'color': curses.color_pair(i)}
-            i += 1
+        self.highlight_background = None
+        for npass in range(1, 3):
+            for token in text.split('\n'):
+                tk = token.split()
+                if tk[0] == 'Highlight':
+                    # Highlight background
+                    try:
+                        self.highlight_background = int(self.__colors[tk[1]])
+                    except KeyError:
+                        self.highlight_background = int(tk[1])
+                    continue
+                else:
+                    try:
+                        foreground = self.__colors[tk[1]]
+                        if npass == 1:
+                            background = self.__colors[tk[2]]
+                        else:
+                            background = self.highlight_background
+                    except KeyError:
+                        foreground = int(tk[1])
+                        if npass == 1:
+                            background = int(tk[2])
+                        else:
+                            background = self.highlight_background
 
-    def __get_attribute_for_token_type(self, tokentype):
+                c = pygments.token.string_to_tokentype('Token.' + tk[0])
+                try:
+                    curses.init_pair(i, foreground, background)
+                except:
+                    s = 'int(tk[1]) {} int(tk[2]) {}'
+                    raise Exception(s.format(int(tk[1]), int(tk[2])))
+                if npass == 1:
+                    self.token_colors[c] = {'color': curses.color_pair(i)}
+                else:
+                    self.token_colors[c]['highlight'] = curses.color_pair(i)
+                i += 1
+
+    def get_attrs_for_token(self, tokentype):
         ''' 'split' the token into it's hierarchy and search for
              it in order in the loaded dictionary '''
         types = tokentype.split()
@@ -122,18 +151,20 @@ class Highlighter:
         for tt in types:
             try:
                 attribute = self.token_colors[tt]['color']
-                return attribute
+                highlight = self.token_colors[tt]['highlight']
+                return attribute, highlight
             except KeyError:
                 pass
-        return curses.A_NORMAL
+        return curses.A_NORMAL, curses.A_REVERSE
         # curses.color_pair(0)
 
     def scan(self, since, to):
         t = self.b.extract_text(since, to)
         index = 0
         for tokentype, value in self.lexer.get_tokens(t['text']):
-            attribute = self.__get_attribute_for_token_type(tokentype)
+            attribute, highlight = self.get_attrs_for_token(tokentype)
             for i in range(len(value)):
                 (t['refs'][i + index]).attr = attribute
+                (t['refs'][i + index]).high = highlight
                 # if (i + index) < len(t['attributes']):
             index += len(value)

@@ -61,6 +61,7 @@ class Char:
             self.attr = curses.A_NORMAL
         else:
             self.attr = attr
+        self.high = curses.A_REVERSE    # Until overwritten by highlight
 
 
 class Line:

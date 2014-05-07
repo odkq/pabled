@@ -46,7 +46,7 @@ class Display:
                 if (buf is not None and
                     buf.in_visual_range(y + buf.viewport.y0,
                                         i + buf.viewport.x0)):
-                    a = curses.A_REVERSE
+                    a = line[i].high
                 else:
                     a = line[i].attr
                 ch = line[i].ch
