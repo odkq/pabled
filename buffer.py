@@ -394,3 +394,24 @@ class Buffer(Ex, StatusLine, Visual):
             mx = len(line)
         self.cursor.x = mx
         self.cursor.max = mx
+
+    def shift_right(self, key):
+        ''' Shift right one tab '''
+        # ch = ' '.encode('utf-8')
+        x = 0
+        if self.visual_cursor is not None:
+            first_line, last_line = self.get_visual_range()
+            r = range(first_line, last_line + 1)
+            # Reset visual selection
+            self.set_visual()
+        else:
+            r = [self.cursor.y]
+
+        for y in r:
+            for times in range(4):
+                insert_element(self.lines[y], x,
+                               Char(u' ', curses.A_NORMAL))
+
+    def shift_left(self, key):
+        ''' Shift left one tab '''
+        pass
