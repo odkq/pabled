@@ -395,8 +395,8 @@ class Buffer(Ex, StatusLine, Visual):
         self.cursor.x = mx
         self.cursor.max = mx
 
-    def shift_right(self, key):
-        ''' Shift right one tab '''
+    def shift(self, right=True):
+        ''' Shift right/left n spaces (tab size) or a tab character '''
         # ch = ' '.encode('utf-8')
         x = 0
         if self.visual_cursor is not None:
@@ -406,12 +406,42 @@ class Buffer(Ex, StatusLine, Visual):
             self.set_visual()
         else:
             r = [self.cursor.y]
+        if right:
+            for y in r:
+                line = self.lines[y]
+                if len(line) == 0:
+                    continue        # Do not shift empty lines
+                for times in range(4):
+                    insert_element(self.lines[y], x,
+                                   Char(u' ', curses.A_NORMAL))
+                # TODO: Use tabs when specified
+        else:
+            for y in r:
+                line = self.lines[y]
+                if len(line) == 0:
+                    continue
+                if line[0].ch == u'\t':
+                    # There is a tab to delete, stop here
+                    self.cursor.x = 0
+                    self.cursor.y = y
+                    self.delete_char_at_cursor('@')
+                    self.move_to_first_non_blank('^')
+                    continue
+                mx = 0
+                for n in range(len(line)):
+                    char = line[n]
+                    if char.ch != u' ':
+                        mx = n
+                        break
+                if mx >= 4:                 # TODO: use tab size instead of 4
+                    self.cursor.x = 0
+                    self.cursor.y = y
+                    self.delete_char_at_cursor('@')  # This deletes 4
+                    self.move_to_first_non_blank('^')
 
-        for y in r:
-            for times in range(4):
-                insert_element(self.lines[y], x,
-                               Char(u' ', curses.A_NORMAL))
+    def shift_right(self, key):
+        self.shift(right=True)
 
     def shift_left(self, key):
         ''' Shift left one tab '''
-        pass
+        self.shift(right=False)
