@@ -50,7 +50,8 @@ Punctuation yellow black
 Comment cyan black
 Other red black"""
 
-schema256 = """Text 7 16
+''' Original '''
+schema256_2 = """Text 7 16
 Highlight 235
 Whitespace 0 7
 Error 200 1
@@ -72,6 +73,27 @@ Comment 36 16
 Other red black"""
 
 
+schema256 = """Text 231 16
+Highlight 235
+Whitespace 0 7
+Error 200 1
+Keyword.Namespace 171 16
+Keyword 186 16
+Name.Class 205 16
+Name.Function 104 16
+Name.Exception 212 16
+Name.Builtin.Pseudo 210 16
+Name.Builtin 222 16
+Name 7 16
+Literal.String.Escape 3 16
+Literal 3 16
+String 143 16
+Number 41 16
+Punctuation 8 16
+Operator 8 16
+Comment 243 16
+Other red black"""
+
 class Highlighter:
     """ Fill the attributes of the text using Pygments """
     def __init__(self, buffer):
@@ -90,10 +112,13 @@ class Highlighter:
                          'cyan': 6, 'white': 7}
         # Set default color schema when only 8 colors are available
         if curses.COLORS != 256:
+            open('/tmp/perico.txt', 'w').write('16*\n')
             self.setcolorschema(defcolschema)
         # Set default schema for 256 colors
         else:
+            open('/tmp/perico.txt', 'w').write('256*\n')
             self.setcolorschema(schema256)
+        # self.setcolorschema(defcolschema)
 
     def default_attribute(self):
         c = pygments.token.string_to_tokentype('Token.Text')
