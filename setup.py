@@ -22,8 +22,6 @@ if __name__ == '__main__':
                 for end in ['_pb2.py', '.pyc', '.so', '.o']:
                     if filepath.endswith(end):
                         os.remove(filepath)
-        # if os.path.exists('web/mxcjobman.js'):
-        #    os.remove('web/mxcjobman.js')
         for d in ['hellfire.egg-info', 'build', 'dist', 'deb_dist']:
             subprocess.call(['sudo', 'rm', '-fR', d])
     else:
