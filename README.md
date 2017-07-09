@@ -1,11 +1,12 @@
-hellfire
-========
+pabled
+======
+Pablo's own Editor
 
 A small ncurses based console text editor with vi keybindings written in Python
 
-Caveat emptor: This is the editor I use, it lacks vi POSIX compatibility
-and lacks a lot of commands, but it is easier to extend than many others (at
-least for me :)
+This is a small editor I did with the intention of using it, it lacks
+vi POSIX compatibility and lacks a lot of commands, but it is easier
+to extend than others (at least for me)
 
 Featuring:
  - Somehow vi-alike keybindings
@@ -21,9 +22,9 @@ Featuring:
 Requirements
 ------------
 
-Requires Python 2.7, setuptools and pygments. To install on Debian Wheezy:
+Requires Python 3.5, setuptools and pygments. To install on Debian Wheezy:
 
-        apt-get install python-pygments python-setuptools
+        apt-get install python3-pygments python3-setuptools
 
 You will need also a terminal emulator and locale that support UTF-8, and a
 font that can display Unicode graphic characters. As a reference, i use
@@ -37,9 +38,9 @@ export TERM=xterm-256color in xterm and TERM=screen-256color in tmux to get
 
 Installation
 ------------
-Install system-wide, with executable in /usr/bin/hellfire:
+Install system-wide, with executable in /usr/local/bin/hellfire:
 
-        sudo python ./setup.py install
+        sudo python3 ./setup.py install
 
 Supported vi commands
 ---------------------

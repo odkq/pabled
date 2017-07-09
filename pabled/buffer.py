@@ -19,8 +19,8 @@
 """
 import curses
 import re
-from hellfire import (Ex, StatusLine, Cursor, Viewport, Line, Highlighter,
-                      Char, Visual, insert_element, delete_element)
+from pabled import (Ex, StatusLine, Cursor, Viewport, Line, Highlighter,
+                    Char, Visual, insert_element, delete_element)
 
 
 class Buffer(Ex, StatusLine, Visual):

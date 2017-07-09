@@ -25,7 +25,7 @@ import copy
 import sys
 import re
 
-from hellfire import game_2048
+from pabled import game_2048
 
 
 class Commands:

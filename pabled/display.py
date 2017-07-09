@@ -19,7 +19,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import curses
-from hellfire.line import Line
+from pabled.line import Line
 
 
 class Display:

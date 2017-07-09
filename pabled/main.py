@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
- vy - a small vi-lish editor
+ pabled - a small vi-lish editor
 
  Copyright (C) 2012, 2013 Pablo Martin <pablo@odkq.com>
 
@@ -22,10 +22,10 @@ import curses
 import locale
 import sys
 
-from hellfire import Buffer, Display, Keys
+from pabled import Buffer, Display, Keys
 
 
-class Vy:
+class Pabled:
     def __init__(self, display):
         self.display = display
         self.buffers = []
@@ -128,11 +128,11 @@ def main(stdscr, argv):
     display = Display(stdscr)
     buf = Buffer(display.mx - 1, display.my - 2, display)
     keys = Keys()
-    vy = Vy(display)
+    pabled = Pabled(display)
     buf.open(argv[1])
     buf.refresh_status('@')
-    vy.add_buffer(buf)
-    vy.set_current(buf)
+    pabled.add_buffer(buf)
+    pabled.set_current(buf)
     set_command_mode_keys(keys, buf)
     set_status_mode_keys(keys, buf)
     set_insert_mode_keys(keys, buf)
@@ -147,10 +147,10 @@ def main(stdscr, argv):
         display.show(buf)
 
 
-# Entry point in setup.py for the /usr/bin/vy script
+# Entry point in setup.py for the /usr/local/bin/pabled script
 def main_curses():
     if len(sys.argv) < 2:
-        print ('Usage: hellfire <file>')
+        print ('Usage: pabled <file>')
         sys.exit(0)
 
     locale.setlocale(locale.LC_ALL, "")

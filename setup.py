@@ -22,21 +22,20 @@ if __name__ == '__main__':
                 for end in ['_pb2.py', '.pyc', '.so', '.o']:
                     if filepath.endswith(end):
                         os.remove(filepath)
-        for d in ['hellfire.egg-info', 'build', 'dist', 'deb_dist']:
+        for d in ['pabled.egg-info', 'build', 'dist', 'deb_dist']:
             subprocess.call(['sudo', 'rm', '-fR', d])
     else:
         setup(
-            name='hellfire',
+            name='pabled',
             version='0.2.0',
             description="A small text editor with fancy features",
             author="Pablo Martin Medrano",
             author_email="pablo@odkq.com",
-            packages=['hellfire'],
+            packages=['pabled'],
 	    entry_points = {
-		'console_scripts': ['hellfire=hellfire.main:main_curses'],
+		'console_scripts': ['pabled=pabled.main:main_curses'],
 	    },
-            url="https://github.com/odkq/hellfire",
+            url="https://github.com/odkq/pabled",
             license="GPL v3",
             long_description=open('README.md').read(),
-            data_files=[("/usr/share/doc/hellfire", ["README.md"])],
             classifiers=classifiers)

@@ -18,7 +18,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from hellfire.buffer import Buffer
+from pabled.buffer import Buffer
 
 
 class Keys:
