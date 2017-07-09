@@ -34,7 +34,7 @@ class Keys:
 
         # Digits in command mode are for count
         for n in range(10):
-            self.bind(Buffer.COMMAND, unicode(n), self.set_count)
+            self.bind(Buffer.COMMAND, str(n), self.set_count)
 
     def bind(self, mode, key, method):
         ''' Bind a key or a list of keys to a certain method, referenced
@@ -47,7 +47,7 @@ class Keys:
             for m in mode:
                 self.bind(m, key, method)
             return
-        if type(key) in (str, unicode):
+        if type(key) is str:
             if len(key) > 1:
                 if mode != Buffer.COMMAND:
                     raise Exception('Multikeys are only allowed on COMMAND')
@@ -92,7 +92,7 @@ class Keys:
         self.mode = mode
 
     def set_count(self, key):
-        if self.count == 0 and key == u'0':
+        if self.count == 0 and key == '0':
             self.methods[Buffer.COMMAND]['0']
         else:
             self.count = int(str(self.count) + key)

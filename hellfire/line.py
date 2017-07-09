@@ -53,7 +53,8 @@ class Char:
     ''' Encapsulate both a character (as a unicode string)
         and it's attributes '''
     def __init__(self, ch, attr):
-        if ch.__class__.__name__ != 'unicode':
+        # if ch.__class__.__name__ != 'unicode':
+        if ch.__class__.__name__ != 'str':
             raise Exception(ch.__class__.__name__ + ' -> ' + str(ch))
         else:
             self.ch = ch

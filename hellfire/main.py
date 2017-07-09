@@ -150,7 +150,7 @@ def main(stdscr, argv):
 # Entry point in setup.py for the /usr/bin/vy script
 def main_curses():
     if len(sys.argv) < 2:
-        print ('Usage: hf <file>')
+        print ('Usage: hellfire <file>')
         sys.exit(0)
 
     locale.setlocale(locale.LC_ALL, "")

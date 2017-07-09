@@ -32,8 +32,10 @@ class Commands:
     def __init__(self):
         # Retrieve all valid method names using introspection, leaving
         # out __init__() and get_candidates()
-        c = [d for d in dir(Commands) if hasattr(Commands.__dict__[d],
-                                                 '__call__')]
+        open('/tmp/a.txt', 'w').write(str(dir(Commands)) + '\n')
+        open('/tmp/b.txt', 'w').write(str(Commands.__dict__.keys()) + '\n')
+
+        c = [d for d in Commands.__dict__.keys() if hasattr(Commands.__dict__[d], '__call__')]
         c = [d for d in c if d not in ['__init__', 'get_candidates',
                                        'get_range']]
         self.commands = c

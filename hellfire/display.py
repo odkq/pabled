@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf-8
 """
  display - Display (ncurses) abstraction
 
@@ -26,7 +27,7 @@ class Display:
     def __init__(self, stdscr):
         self.stdscr = stdscr
         self.my, self.mx = self.stdscr.getmaxyx()
-        self.status = Line(u' ' * (self.mx))
+        self.status = Line(' ' * (self.mx))
         # This is to redraw a snapshot() for fast overly animations
         # (for hellfire :)
         self.canvas = []
@@ -34,7 +35,7 @@ class Display:
             self.canvas.append([])
             for x in range(self.mx):
                 self.canvas[y].append({'str': ' ', 'attr': curses.A_NORMAL})
-    
+
     def update_line(self, y, line, buf=None):
         # If it is the last line, do not write in the last cell
         if y == (self.my - 1):
@@ -51,12 +52,12 @@ class Display:
                     a = line[i].attr
                 ch = line[i].ch
             else:
-                ch = u' '
+                ch = ' '
                 if (buf is not None) and (buf.high is not None):
                     a = buf.high.default_attribute()
                 else:
                     a = curses.A_NORMAL
-            if type(ch) == unicode:
+            if type(ch) == str:
                 ch = ch.encode('utf-8')
             elif type(ch) == str:
                 pass
@@ -78,7 +79,7 @@ class Display:
 
     def show(self, buf):
         """ Refresh display after a motion command """
-        for y in xrange(0, self.my - 1):
+        for y in range(0, self.my - 1):
             n = y + buf.viewport.y0
             self.update_line(y, buf[n], buf)
         self.update_line(self.my - 1, self.status)
@@ -157,6 +158,6 @@ def get_char(win):
         bytes.append(get_check_next_byte())
     else:   # Not an unicode string, but an encoded 'special key'
         return c
-    buf = (''.join([chr(b) for b in bytes])).decode('utf-8')
+    buf = (''.join([chr(b) for b in bytes]))
     # raise Exception(buf.encode('utf-8'))
-    return unicode(buf)
+    return str(buf)

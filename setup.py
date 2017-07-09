@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from setuptools import setup
 import os
 import sys
@@ -7,7 +7,7 @@ import subprocess
 classifiers = [
     "Development Status :: 2 - Alpha",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3.5",
     "Topic :: Text Editors",
     "Environment :: Console",
     "Environment :: Console :: Curses",
@@ -27,17 +27,14 @@ if __name__ == '__main__':
     else:
         setup(
             name='hellfire',
-            version='0.0.1',
+            version='0.2.0',
             description="A small text editor with fancy features",
             author="Pablo Martin Medrano",
             author_email="pablo@odkq.com",
-            package_dir={'hellfire': '.'},
             packages=['hellfire'],
-            entry_points={
-                'console_scripts': {
-                    'hellfire = hellfire.main:main_curses'
-                }
-            },
+	    entry_points = {
+		'console_scripts': ['hellfire=hellfire.main:main_curses'],
+	    },
             url="https://github.com/odkq/hellfire",
             license="GPL v3",
             long_description=open('README.md').read(),

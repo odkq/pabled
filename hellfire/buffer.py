@@ -49,7 +49,8 @@ class Buffer(Ex, StatusLine, Visual):
         self.lines = []
         for l in open(path).readlines():
             # l[:-1]
-            line = Line((l).decode('utf-8'))
+            line = Line(l)
+            # .decode('utf-8'))
             self.lines.append(line)
 
         self.high = Highlighter(self)
@@ -63,7 +64,7 @@ class Buffer(Ex, StatusLine, Visual):
         try:
             return self.lines[n]
         except IndexError:
-            return Line('~'.decode('utf-8'))
+            return Line('~')
 
     def length(self):
         return len(self.lines)
@@ -139,7 +140,7 @@ class Buffer(Ex, StatusLine, Visual):
             if (x >= 4) and ((x % 4) == 0):
                 line = c.current_line()
                 for si in range(x - 4, x - 1):
-                    if line[si].ch != u' ':
+                    if line[si].ch != ' ':
                         break
                 else:
                     c.cursor.x -= 3  # Last one is default
@@ -155,7 +156,7 @@ class Buffer(Ex, StatusLine, Visual):
             line = c.current_line()
             if len(line) > (x + 4):
                 for si in range(x, x + 4):
-                    if line[si].ch != u' ':
+                    if line[si].ch != ' ':
                         break
                 else:
                     c.cursor.x += 3  # Last one is default
@@ -214,12 +215,12 @@ class Buffer(Ex, StatusLine, Visual):
 
     def refresh_status(self, ch):
         if len(self.current_line()) <= 0:
-            current_char = u' '
+            current_char = ' '
         else:
             current_char = self.current_line()[self.cursor.x].ch
-        if current_char == u'\n':
-            current_char = u'$'
-        i = u'{}/{},{}/{} [{}] [{}]'.format(self.cursor.y, len(self.lines),
+        if current_char == '\n':
+            current_char = '$'
+        i = '{}/{},{}/{} [{}] [{}]'.format(self.cursor.y, len(self.lines),
                                             self.cursor.x,
                                             len(self.current_line()),
                                             current_char, ch)
@@ -264,7 +265,7 @@ class Buffer(Ex, StatusLine, Visual):
                 if l > index + 4:
                     line = self.current_line()
                     for si in range(index, index + 4):
-                        if line[si].ch != u' ':
+                        if line[si].ch != ' ':
                             break
                     else:
                         # Delete the four spaces
@@ -313,15 +314,15 @@ class Buffer(Ex, StatusLine, Visual):
         x = self.cursor.x
         nspaces = 4 - (x % 4)
         for i in range(nspaces):
-            self.insert_char(u' ')
+            self.insert_char(' ')
 
     def search(self, pattern=None, reverse=False):
         y = self.cursor.y
         x = self.cursor.x
         if reverse:
-            ran = reversed(range(0, y - 1))
+            ran = reversed(list(range(0, y - 1)))
         else:
-            ran = range(y, len(self.lines))
+            ran = list(range(y, len(self.lines)))
         first = True
         for i in ran:
             if first:
@@ -338,7 +339,7 @@ class Buffer(Ex, StatusLine, Visual):
                 self.regexp = pattern
             start, end = self.find(i, x, pattern)
             if start is not None:
-                self.display.print_in_statusline(0, u'/' + pattern, 20)
+                self.display.print_in_statusline(0, '/' + pattern, 20)
                 self.cursor.x = start
                 self.cursor.y = i
                 self.cursor_and_viewport_adjustement()
@@ -387,7 +388,7 @@ class Buffer(Ex, StatusLine, Visual):
         line = self.current_line()
         for n in range(len(line)):
             char = line[n]
-            if char.ch != u' ' and char.ch != u'\t':
+            if char.ch != ' ' and char.ch != '\t':
                 mx = n
                 break
         else:
@@ -401,7 +402,7 @@ class Buffer(Ex, StatusLine, Visual):
         x = 0
         if self.visual_cursor is not None:
             first_line, last_line = self.get_visual_range()
-            r = range(first_line, last_line + 1)
+            r = list(range(first_line, last_line + 1))
             # Reset visual selection
             self.set_visual()
         else:
@@ -413,14 +414,14 @@ class Buffer(Ex, StatusLine, Visual):
                     continue        # Do not shift empty lines
                 for times in range(4):
                     insert_element(self.lines[y], x,
-                                   Char(u' ', curses.A_NORMAL))
+                                   Char(' ', curses.A_NORMAL))
                 # TODO: Use tabs when specified
         else:
             for y in r:
                 line = self.lines[y]
                 if len(line) == 0:
                     continue
-                if line[0].ch == u'\t':
+                if line[0].ch == '\t':
                     # There is a tab to delete, stop here
                     self.cursor.x = 0
                     self.cursor.y = y
@@ -430,7 +431,7 @@ class Buffer(Ex, StatusLine, Visual):
                 mx = 0
                 for n in range(len(line)):
                     char = line[n]
-                    if char.ch != u' ':
+                    if char.ch != ' ':
                         mx = n
                         break
                 if mx >= 4:                 # TODO: use tab size instead of 4
